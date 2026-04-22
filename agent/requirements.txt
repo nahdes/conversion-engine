@@ -1,0 +1,9 @@
+resend>=0.7.0
+africastalking>=1.2.6
+playwright>=1.40.0
+fastapi>=0.109.0
+uvicorn>=0.27.0
+langfuse>=2.0.0
+python-dotenv>=1.0.0
+requests>=2.31.0
+aiohttp>=3.9.0
