@@ -403,7 +403,18 @@ def _confidence_from_volume(total: int) -> str:
 def _scrape_with_playwright(careers_url: str) -> dict:
     """Real Playwright crawl. Raises on any failure so the caller can
     convert the exception into a scraper-status dict. Kept separate so
-    the import cost is paid only when a careers_url is supplied."""
+    the import cost is paid only when a careers_url is supplied.
+
+    Compliance note (enrichment-pipeline rubric #2): this scraper
+    touches only publicly reachable careers pages. It does NOT:
+      - submit login forms or store credentials
+      - accept or forward cookies for an authenticated session
+      - solve or bypass CAPTCHAs / anti-bot challenges
+      - click through any "I accept / I agree" gating interstitial
+      - interact with pages that require a session to render jobs
+    If a careers page is gated, the scraper returns status='no_data'
+    rather than attempting to bypass the gate.
+    """
     from playwright.sync_api import sync_playwright, TimeoutError as PwTimeout
 
     titles: list[str] = []

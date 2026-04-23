@@ -165,28 +165,76 @@ def send_outreach(to_email: str, subject: str, html_body: str,
         f'resend send failed after {MAX_ATTEMPTS} attempts: {last_err}')
 
 
-def handle_reply_webhook(payload: dict | None) -> dict:
-    """Parse a Resend inbound/reply webhook into the fields downstream
-    routing cares about.
+# Resend webhook event taxonomy. Every event lands in exactly one bucket
+# so downstream routing never has to string-match the event name:
+#   - replied:  a prospect responded, run the warm-lead flow
+#   - bounced:  the destination is invalid / blocked — mark hardfail
+#   - complained: the recipient flagged the message as spam
+#   - delayed:  provider is retrying; no action needed, just audit
+#   - delivered / sent / opened / clicked: delivery-telemetry noise
+#   - malformed: payload couldn't be parsed
+#   - unknown:  event type we don't recognize (log, don't act)
+_REPLY_EVENTS     = {'email.replied', 'email.reply.received',
+                     'email.inbound', 'inbound.email'}
+_BOUNCE_EVENTS    = {'email.bounced', 'email.bounce',
+                     'email.delivery.failed', 'email.failed'}
+_COMPLAINT_EVENTS = {'email.complained', 'email.complaint',
+                     'email.marked_as_spam'}
+_DELAY_EVENTS     = {'email.delivery_delayed', 'email.deferred'}
+_DELIVERY_EVENTS  = {'email.delivered', 'email.sent',
+                     'email.opened', 'email.clicked'}
 
-    Defensive because Resend has shipped two shapes:
-    - legacy `{from: {email, name}, subject, text}`
-    - current `{type: 'email.replied', data: {from, subject, text, ...}}`
+
+def _classify_event(event_type: str | None) -> str:
+    if not event_type:
+        return 'unknown'
+    e = str(event_type).lower()
+    if e in _REPLY_EVENTS:
+        return 'replied'
+    if e in _BOUNCE_EVENTS:
+        return 'bounced'
+    if e in _COMPLAINT_EVENTS:
+        return 'complained'
+    if e in _DELAY_EVENTS:
+        return 'delayed'
+    if e in _DELIVERY_EVENTS:
+        return 'delivery'
+    return 'unknown'
+
+
+def handle_reply_webhook(payload: dict | None) -> dict:
+    """Parse a Resend webhook into a downstream-friendly shape.
+
+    Resend has shipped three payload shapes over time (legacy inbound,
+    typed event-with-data, bare event dict). All three are handled here
+    so a schema drift doesn't silently turn bounces into replies.
 
     Returns a dict with:
-      - event:      inferred event type (e.g. 'email.replied', 'unknown')
-      - from_email: sender address or None
+      - event:      raw event type string (e.g. 'email.bounced')
+      - category:   one of 'replied' | 'bounced' | 'complained' |
+                    'delayed' | 'delivery' | 'malformed' | 'unknown'
+      - from_email: sender address (reply) or recipient address (bounce),
+                    or None if the payload didn't carry one
+      - to_email:   the original recipient for bounce / complaint events
       - subject:    subject line or None
-      - text:       best-effort plain-text body (empty string if absent)
-      - message_id: Resend id if present (for audit-trail correlation)
-      - error:      str when the payload could not be parsed at all
+      - text:       best-effort plain-text body; empty on non-reply events
+      - message_id: Resend id when present, for audit-trail correlation
+      - reason:     bounce reason / diagnostic code when present
+      - error:      diagnostic string when `category == 'malformed'`
+
+    Malformed payloads never raise — the webhook caller always gets a
+    categorized result so it can log and return 200 to Resend (non-200
+    responses cause Resend to retry the event indefinitely).
     """
     if not isinstance(payload, dict):
-        return {'event': 'unknown', 'from_email': None, 'subject': None,
-                'text': '', 'message_id': None,
+        return {'event': None, 'category': 'malformed',
+                'from_email': None, 'to_email': None,
+                'subject': None, 'text': '',
+                'message_id': None, 'reason': None,
                 'error': f'payload is {type(payload).__name__}, expected dict'}
 
-    event_type = payload.get('type') or 'unknown'
+    event_type = payload.get('type') or payload.get('event')
+    category = _classify_event(event_type)
     data = payload.get('data') if isinstance(payload.get('data'), dict) \
         else payload
 
@@ -197,17 +245,46 @@ def handle_reply_webhook(payload: dict | None) -> dict:
         from_email = sender
     else:
         from_email = None
-
-    # Normalize and validate the sender if present so a malformed value
-    # doesn't pollute downstream HubSpot writes.
     if from_email and not _EMAIL_RE.match(from_email.strip()):
         log.info('resend webhook: dropping malformed from_email=%r', from_email)
         from_email = None
 
-    return {
+    # Recipient lives under `to` for bounces; can be list or string.
+    to_raw = data.get('to') or data.get('recipient')
+    if isinstance(to_raw, list) and to_raw:
+        to_raw = to_raw[0]
+    if isinstance(to_raw, dict):
+        to_email = to_raw.get('email')
+    elif isinstance(to_raw, str):
+        to_email = to_raw
+    else:
+        to_email = None
+    if to_email and not _EMAIL_RE.match(to_email.strip()):
+        to_email = None
+
+    reason = (data.get('reason') or data.get('bounce_reason')
+              or data.get('diagnostic_code'))
+
+    # For non-reply events we deliberately don't surface body text — a
+    # bounce payload sometimes echoes the original subject/body and
+    # downstream code should not treat that as a customer reply.
+    text = (data.get('text') or data.get('html') or '') \
+        if category == 'replied' else ''
+    subject = data.get('subject') if category in ('replied', 'bounced') else None
+
+    out = {
         'event': event_type,
+        'category': category,
         'from_email': from_email.strip() if from_email else None,
-        'subject': data.get('subject'),
-        'text': data.get('text') or data.get('html') or '',
+        'to_email': to_email.strip() if to_email else None,
+        'subject': subject,
+        'text': text,
         'message_id': data.get('email_id') or data.get('id'),
+        'reason': reason,
     }
+    if category == 'unknown':
+        log.info('resend webhook: unknown event_type=%r', event_type)
+    elif category in ('bounced', 'complained'):
+        log.warning('resend webhook: %s event for %s (reason=%s)',
+                    category, out['to_email'] or out['from_email'], reason)
+    return out
