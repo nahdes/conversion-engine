@@ -332,14 +332,180 @@ def _leadership_change(cb_row: dict) -> dict:
     return out
 
 
+# Job-post classification tokens. Kept as compiled regex so the scraper
+# can run classification in a tight loop on 100+ lines without pathological
+# costs. ENG is intentionally broad (any technical IC/manager track); AI
+# is a narrower subset. AI titles count toward BOTH ai_roles and eng_roles
+# since the schema's `ai_adjacent_open_roles` ratio is ai/eng.
+_ENG_TITLE_RE = re.compile(
+    r'\b(engineer(?:ing)?|developer|architect|devops|sre|swe|software|'
+    r'backend|frontend|full[\s\-]?stack|platform|infra(?:structure)?|'
+    r'mlops|security engineer|data engineer|qa engineer|test engineer|'
+    r'cloud engineer|reliability)\b',
+    re.IGNORECASE)
+_AI_TITLE_RE = re.compile(
+    r'\b(machine[\s\-]?learning|\bml\b|(?<![a-z])ai(?![a-z])|'
+    r'artificial[\s\-]?intelligence|data[\s\-]?scien(?:tist|ce)|'
+    r'applied[\s\-]?scientist|research[\s\-]?scientist|nlp|llm|'
+    r'computer[\s\-]?vision|foundation[\s\-]?model|generative[\s\-]?ai|'
+    r'deep[\s\-]?learning|mlops|ml[\s\-]?engineer|ai[\s\-]?engineer)\b',
+    re.IGNORECASE)
+
+# URL path patterns that typically identify job-post links on a careers
+# page. Checked case-insensitively against the link `href`.
+_JOB_HREF_RE = re.compile(
+    r'/(jobs?|careers?|positions?|openings?|roles?|vacanc|apply)/', re.I)
+
+# Hard caps so a sprawling careers page can't balloon the brief or chew
+# through the enrichment latency budget.
+_SCRAPE_NAV_TIMEOUT_MS = 20_000
+_SCRAPE_MAX_LINKS = 400
+_SCRAPE_MAX_RAW_LINES = 80
+
+
+def _classify_titles(titles: list[str]) -> tuple[int, int, list[str]]:
+    """Return (eng_roles, ai_roles, normalized_unique_titles).
+    A title that matches AI is also counted under eng (AI titles are a
+    subset of the eng pool that the ratio denominator expects)."""
+    seen: set[str] = set()
+    ordered: list[str] = []
+    eng = 0
+    ai = 0
+    for t in titles:
+        norm = ' '.join((t or '').split())
+        if not norm or len(norm) > 160:
+            continue
+        key = norm.lower()
+        if key in seen:
+            continue
+        seen.add(key)
+        is_eng = bool(_ENG_TITLE_RE.search(norm))
+        is_ai = bool(_AI_TITLE_RE.search(norm))
+        if not (is_eng or is_ai):
+            continue
+        ordered.append(norm)
+        if is_ai:
+            ai += 1
+            eng += 1  # AI titles count toward eng denominator too
+        elif is_eng:
+            eng += 1
+    return eng, ai, ordered
+
+
+def _confidence_from_volume(total: int) -> str:
+    if total >= 15:
+        return 'high'
+    if total >= 3:
+        return 'medium'
+    return 'low'
+
+
+def _scrape_with_playwright(careers_url: str) -> dict:
+    """Real Playwright crawl. Raises on any failure so the caller can
+    convert the exception into a scraper-status dict. Kept separate so
+    the import cost is paid only when a careers_url is supplied."""
+    from playwright.sync_api import sync_playwright, TimeoutError as PwTimeout
+
+    titles: list[str] = []
+    with sync_playwright() as pw:
+        browser = pw.chromium.launch(headless=True)
+        try:
+            ctx = browser.new_context(
+                user_agent=('Mozilla/5.0 (Windows NT 10.0; Win64; x64) '
+                            'AppleWebKit/537.36 (KHTML, like Gecko) '
+                            'Chrome/124.0 Safari/537.36'))
+            page = ctx.new_page()
+            try:
+                page.goto(careers_url, wait_until='domcontentloaded',
+                          timeout=_SCRAPE_NAV_TIMEOUT_MS)
+            except PwTimeout:
+                # Fall through — partial DOM is often enough to scrape a
+                # job board that lazy-loads via JS.
+                pass
+            # Best-effort settle. Don't fail the scrape if the page
+            # never idles (common on infinite-scroll boards).
+            try:
+                page.wait_for_load_state('networkidle', timeout=5_000)
+            except PwTimeout:
+                pass
+
+            # Strategy 1: anchor tags pointing at obvious job URLs.
+            anchors = page.evaluate(
+                '() => Array.from(document.querySelectorAll("a"))'
+                '.slice(0, %d)'
+                '.map(a => ({text: (a.innerText || "").trim(), '
+                '            href: a.getAttribute("href") || ""}))'
+                % _SCRAPE_MAX_LINKS)
+            for a in anchors:
+                href = a.get('href') or ''
+                text = a.get('text') or ''
+                if href and _JOB_HREF_RE.search(href):
+                    titles.append(text or href)
+
+            # Strategy 2: fallback — any visible block whose text alone
+            # reads like a role title. Useful on SPA pages where links
+            # route through /?job=123 without a path segment.
+            if not titles:
+                blocks = page.evaluate(
+                    '() => Array.from(document.querySelectorAll('
+                    '"h1,h2,h3,h4,li,button,div[role=\\"listitem\\"]"))'
+                    '.slice(0, %d).map(e => (e.innerText || "").trim())'
+                    % _SCRAPE_MAX_LINKS)
+                titles.extend(b for b in blocks if b)
+        finally:
+            browser.close()
+
+    eng, ai, ordered = _classify_titles(titles)
+    return {
+        'total_roles': len(ordered),
+        'eng_roles': eng,
+        'ai_roles': ai,
+        'raw_lines': ordered[:_SCRAPE_MAX_RAW_LINES],
+        'confidence': _confidence_from_volume(len(ordered)),
+        'status': 'success' if ordered else 'no_data',
+        'note': (f'playwright crawl of {careers_url}: '
+                 f'{len(ordered)} role-like titles'),
+    }
+
+
 def scrape_job_posts(careers_url: str | None) -> dict:
-    """Playwright crawl intentionally deferred. Returns a placeholder the
-    schema can consume; the brief's hiring_velocity block will fall back
-    to `insufficient_signal` when this is called."""
-    return {'total_roles': 0, 'eng_roles': 0, 'ai_roles': 0,
-            'raw_lines': [], 'confidence': 'low',
-            'note': f'stub (Chromium not installed); would scrape {careers_url}'
-                    if careers_url else 'no careers_url provided'}
+    """Playwright crawl of a careers page.
+
+    Returns a dict the brief can consume whether the crawl succeeded,
+    returned nothing, or failed to run at all:
+
+      - total_roles / eng_roles / ai_roles: classified counts
+      - raw_lines: normalized titles kept for the audit trail
+      - confidence: 'high' / 'medium' / 'low' by role volume
+      - status: 'success' | 'no_data' | 'error' (matches the schema's
+                data_sources_checked enum)
+      - note: one-line human-legible summary
+      - error: present only when status == 'error'
+
+    Failures (no URL, Chromium not installed, navigation error) fall
+    back to the empty-signal shape so the hiring_velocity block keeps
+    emitting `insufficient_signal` rather than blowing up the run.
+    """
+    if not careers_url:
+        return {'total_roles': 0, 'eng_roles': 0, 'ai_roles': 0,
+                'raw_lines': [], 'confidence': 'low',
+                'status': 'no_data',
+                'note': 'no careers_url provided'}
+    try:
+        return _scrape_with_playwright(careers_url)
+    except ImportError as e:
+        return {'total_roles': 0, 'eng_roles': 0, 'ai_roles': 0,
+                'raw_lines': [], 'confidence': 'low',
+                'status': 'error',
+                'error': f'playwright not installed: {e}',
+                'note': f'would scrape {careers_url}; run '
+                        '`python -m playwright install chromium`'}
+    except Exception as e:
+        return {'total_roles': 0, 'eng_roles': 0, 'ai_roles': 0,
+                'raw_lines': [], 'confidence': 'low',
+                'status': 'error',
+                'error': f'{type(e).__name__}: {e}',
+                'note': f'playwright crawl of {careers_url} failed'}
 
 
 def _maturity_justifications(cb_row: dict,
@@ -560,8 +726,11 @@ def _bench_match(tech_stack: list[str]) -> dict:
 
 def _data_sources_checked(cb_matched: bool,
                           layoff_event: dict,
-                          careers_url: str | None) -> list[dict]:
-    """Audit trail per schema. Captures what the pipeline attempted."""
+                          careers_url: str | None,
+                          job_signals: dict) -> list[dict]:
+    """Audit trail per schema. Captures what the pipeline attempted.
+    The careers_page row reflects the actual scraper outcome — success,
+    no_data, or error — so reviewers can tell a dry stub from a live run."""
     now = _now_iso()
     out = [{
         'source': 'crunchbase_odm',
@@ -577,12 +746,18 @@ def _data_sources_checked(cb_matched: bool,
         'fetched_at': now,
     }]
     if careers_url:
-        out.append({
+        scrape_status = job_signals.get('status') or 'error'
+        entry = {
             'source': 'company_careers_page',
-            'status': 'error',
-            'error_message': 'Playwright Chromium download deferred',
+            'status': scrape_status,
             'fetched_at': now,
-        })
+        }
+        if scrape_status == 'error':
+            entry['error_message'] = job_signals.get('error') \
+                or job_signals.get('note') or 'unknown scrape failure'
+        elif scrape_status == 'no_data':
+            entry['error_message'] = 'scraped 0 role-like titles'
+        out.append(entry)
     else:
         out.append({
             'source': 'company_careers_page',
@@ -681,7 +856,9 @@ def build_hiring_signal_brief(company_name: str,
     segment_result = classify(_segment_input_from_signals(
         cb, funding, layoff, leadership, job_signals, ai_score))
 
-    velocity = _hiring_velocity(job_signals, sources=[])
+    velocity_sources = (['company_careers_page']
+                        if job_signals.get('status') == 'success' else [])
+    velocity = _hiring_velocity(job_signals, sources=velocity_sources)
     bench = _bench_match(tech_stack)
 
     flags = _honesty_flags(
@@ -716,7 +893,7 @@ def build_hiring_signal_brief(company_name: str,
         'tech_stack': tech_stack,
         'bench_to_brief_match': bench,
         'data_sources_checked': _data_sources_checked(
-            bool(cb), layoff, careers_url),
+            bool(cb), layoff, careers_url, job_signals),
         'honesty_flags': flags,
         # Non-schema shortcut fields used by measure_latency.py and the
         # gap brief. The schema allows extras (no additionalProperties),
