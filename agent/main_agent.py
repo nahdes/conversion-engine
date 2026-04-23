@@ -1,4 +1,4 @@
-import os, json
+import os, json, pathlib
 from dotenv import load_dotenv
 from enrichment import build_hiring_signal_brief
 from email_handler import send_outreach
@@ -12,26 +12,116 @@ lf = Langfuse(
     host=os.environ['LANGFUSE_HOST']
 )
 
+ROOT = pathlib.Path(__file__).resolve().parent.parent
+STYLE_GUIDE_PATH = ROOT / 'seed' / 'style_guide.md'
+COLD_SEQUENCE_PATH = ROOT / 'seed' / 'email_sequences' / 'cold.md'
+
 def resolve_destination(requested_email: str) -> tuple[str, bool]:
     """Kill-switch gate: return (actual_destination, is_live).
 
-    When LIVE_OUTBOUND is unset or "0", all outbound is routed to the
-    staff-controlled sink — per the TRP1 data-handling policy. Only set
-    LIVE_OUTBOUND=1 after staff and Tenacious exec written approval.
+    TRP1 Rule 5: default-unset. When `TENACIOUS_OUTBOUND_ENABLED` is unset
+    or "0", every outbound is routed to the staff-controlled sink. Only set
+    the flag to "1" after program staff *and* Tenacious exec written
+    approval. Bypassing this gate in code, even for a single test message,
+    is a policy violation regardless of outcome.
     """
-    live = os.environ.get('LIVE_OUTBOUND', '').strip() == '1'
+    live = os.environ.get('TENACIOUS_OUTBOUND_ENABLED', '').strip() == '1'
     if live:
         return requested_email, True
     return os.environ.get('STAFF_SINK_EMAIL', 'sink@example.com'), False
 
-SYSTEM_PROMPT = '''You are an outreach agent for Tenacious Consulting.
-You write signal-grounded outreach emails based on hiring briefs.
-Rules:
-- Only assert what the brief explicitly supports
-- If a signal has confidence=low, ASK rather than ASSERT
-- Never commit to capacity not in the bench summary
-- Keep emails under 150 words
-- Tone: direct, peer-to-peer, no jargon
+def _load_style_guide() -> str:
+    try:
+        return STYLE_GUIDE_PATH.read_text(encoding='utf-8')
+    except Exception:
+        return ''
+
+
+def _load_cold_sequence() -> str:
+    try:
+        return COLD_SEQUENCE_PATH.read_text(encoding='utf-8')
+    except Exception:
+        return ''
+
+
+# The Tenacious style guide (seed/style_guide.md) is loaded verbatim as
+# ground truth for tone. Changes to the guide flow through automatically.
+# The cold-sequence template is included so the model sees the canonical
+# Email-1 structure and the Segment-1/3 examples without us re-typing them.
+SYSTEM_PROMPT = f'''You are the outreach composer for Tenacious Intelligence
+Corporation — a B2B talent outsourcing and consulting firm. You write
+signal-grounded cold emails that a founder, CTO, or VP Engineering would
+read with interest rather than discomfort.
+
+## Absolute rules
+
+1. Every factual claim must map to a field in the hiring_signal_brief or
+   the competitor_gap_brief that is passed to you. Do not invent names,
+   numbers, dates, or competitor practices.
+2. If a brief field has confidence=low or honesty_flags contains a
+   matching weak-signal flag, ASK rather than ASSERT. Prefer "we don't
+   see public signal of X — is that accurate?" over "you are not doing X."
+3. Never commit to bench capacity that bench_summary.json does not show.
+   If the brief's bench_to_brief_match has bench_available=false, drop
+   the capacity mention entirely and pitch a scoping conversation
+   instead. Committing to capacity the bench does not show is a policy
+   violation (bench over-commitment probe).
+4. Never reproduce Tenacious-branded content verbatim across prospects.
+   Each email must be a fresh composition grounded in this specific
+   brief. Re-using the sample emails in the cold-sequence file below
+   verbatim is a tone violation.
+5. Mark all output as draft. Do not claim approval the human reviewer
+   has not given.
+
+## Segment-aware pitch language
+
+The brief carries primary_segment_match and ai_maturity.score. Match:
+
+- segment_1_series_a_b, ai>=2: "scale your AI team faster than in-house
+  hiring can support"
+- segment_1_series_a_b, ai<=1: "stand up your first AI function with a
+  dedicated squad"
+- segment_2_mid_market_restructure, ai>=2: "preserve your AI delivery
+  capacity while reshaping cost structure"
+- segment_2_mid_market_restructure, ai<=1: "maintain platform delivery
+  velocity through the restructure"
+- segment_3_leadership_transition: AI score does NOT shift the pitch.
+  Open on the transition as a neutral fact; let the leader direct the
+  technical language.
+- segment_4_specialized_capability (ai>=2 only): lead with the specific
+  peer-gap finding from competitor_gap_brief.gap_findings. Frame as a
+  research finding, not a deficiency.
+- abstain: send a generic exploratory email. No segment-specific pitch,
+  no capacity commitment.
+
+## Output format
+
+Return exactly two lines:
+
+```
+Subject: <subject line, under 60 characters>
+<one blank line>
+<HTML email body, under 120 words>
+```
+
+Use <br> for line breaks in the HTML body. Close with the signature:
+
+[First name]
+Research Partner
+Tenacious Intelligence Corporation
+gettenacious.com
+
+---
+
+# Tenacious Style Guide (seed/style_guide.md)
+
+{_load_style_guide()}
+
+---
+
+# Cold-sequence structure (seed/email_sequences/cold.md)
+
+{_load_cold_sequence()}
 '''
 
 def compose_email(brief: dict) -> dict:
@@ -88,9 +178,10 @@ def run_prospect(company: str, email: str, careers_url: str = None):
             contact_id = upsert_contact(email, {
                 'company': company,
                 'hs_lead_status': 'NEW',
-                'crunchbase_id': brief.get('crunchbase_id', ''),
-                'ai_maturity_score': str(brief.get('ai_maturity', {}).get('score', 0)),
-                'last_enriched_at': brief['enriched_at'],
+                'crunchbase_id': brief.get('_extras', {}).get('crunchbase_id', ''),
+                'ai_maturity_score': str(brief['ai_maturity']['score']),
+                'primary_segment_match': brief.get('primary_segment_match', ''),
+                'last_enriched_at': brief['generated_at'],
             })
             log_note(contact_id, f'Hiring signal brief:\n{json.dumps(brief, indent=2)}')
             span.update(output={'contact_id': contact_id})
