@@ -65,3 +65,65 @@ def log_note(contact_id: str, body: str) -> None:
             'metadata': {'body': body}
         }
     )
+
+
+def find_contact_by_phone(phone: str) -> dict | None:
+    """Search the CRM for a contact by phone number. Returns the first
+    matching record (id + properties) or None. Used by the SMS handler
+    to route inbound messages to an existing contact instead of minting
+    a duplicate keyed on a synthetic email."""
+    if not phone:
+        return None
+    r = requests.post(
+        f'{BASE}/crm/v3/objects/contacts/search',
+        headers=HEADERS,
+        json={
+            'filterGroups': [{'filters': [
+                {'propertyName': 'phone', 'operator': 'EQ', 'value': phone},
+            ]}],
+            'properties': ['email', 'phone', 'hs_lead_status',
+                           'sms_opt_in', 'sms_unsubscribed'],
+            'limit': 1,
+        },
+    )
+    if not r.ok:
+        return None
+    results = r.json().get('results', [])
+    return results[0] if results else None
+
+
+def get_contact(contact_id: str) -> dict | None:
+    """Read a contact by id, pulling the properties the SMS hierarchy
+    checks. Returns None on 404 so callers can branch cleanly."""
+    if not contact_id:
+        return None
+    r = requests.get(
+        f'{BASE}/crm/v3/objects/contacts/{contact_id}',
+        headers=HEADERS,
+        params={'properties':
+                'email,phone,hs_lead_status,sms_opt_in,sms_unsubscribed'},
+    )
+    if r.status_code == 404:
+        return None
+    if not r.ok:
+        return None
+    return r.json()
+
+
+def update_contact(contact_id: str, props: dict) -> None:
+    """Patch properties on an existing contact. Always re-stamps the
+    draft marker per policy Rule 6 so status updates don't launder the
+    record into looking reviewer-approved."""
+    if not contact_id:
+        return
+    r = requests.patch(
+        f'{BASE}/crm/v3/objects/contacts/{contact_id}',
+        headers=HEADERS,
+        json={'properties': _with_draft(props)},
+    )
+    if r.status_code == 400 and DRAFT_PROPERTY in r.text:
+        requests.patch(
+            f'{BASE}/crm/v3/objects/contacts/{contact_id}',
+            headers=HEADERS,
+            json={'properties': props},
+        )
