@@ -56,17 +56,20 @@ outbound email, SMS, and calendar invitations are routed to the staff-
 controlled synthetic sink during the challenge week, per the TRP1 data-
 handling policy.
 
-Routing is gated by the `LIVE_OUTBOUND` environment variable:
+Routing is gated by the `TENACIOUS_OUTBOUND_ENABLED` environment variable
+(name fixed by `policy/data_handling_policy.md` Rule 5):
 
-| State               | Destination                                       | When to use                                                                    |
-| ------------------- | ------------------------------------------------- | ------------------------------------------------------------------------------ |
-| **Unset (default)** | `STAFF_SINK_EMAIL` / `STAFF_SINK_SMS` from `.env` | Always during the challenge week                                               |
-| `LIVE_OUTBOUND=1`   | The real recipient address                        | Only after program staff **and** Tenacious executive team **written** approval |
+| State                          | Destination                                       | When to use                                                                    |
+| ------------------------------ | ------------------------------------------------- | ------------------------------------------------------------------------------ |
+| **Unset (default)**            | `STAFF_SINK_EMAIL` / `STAFF_SINK_SMS` from `.env` | Always during the challenge week                                               |
+| `TENACIOUS_OUTBOUND_ENABLED=1` | The real recipient address                        | Only after program staff **and** Tenacious executive team **written** approval |
 
 To pause live outbound immediately: unset the variable or set
-`LIVE_OUTBOUND=0`. Every outbound handler in `agent/*.py` consults this
-flag and falls back to the sink when unset. Fabricating or bypassing this
-gate is grounds for removal from the program (TRP1 data-handling policy).
+`TENACIOUS_OUTBOUND_ENABLED=0`. Every outbound handler in `agent/*.py`
+consults this flag via `main_agent.resolve_destination` and falls back
+to the sink when unset. Bypassing this gate in code — even for a single
+test message — is a policy violation regardless of outcome (TRP1
+data-handling policy Rule 5).
 
 All Tenacious-branded content (email copy, call scripts, pricing
 quotations) produced by this system is marked `metadata.status = "draft"`
@@ -101,8 +104,8 @@ cp .env.example .env    # fill in your keys — see `.env` keys below
 | `AT_API_KEY`, `AT_USERNAME`, `AT_SHORTCODE`                                            | Africa's Talking SMS                                              |
 | `HUBSPOT_TOKEN`                                                                        | HubSpot private app token                                         |
 | `CALCOM_API_KEY`, `CALCOM_EVENT_TYPE_ID`                                               | Cal.com booking                                                   |
-| `STAFF_SINK_EMAIL`, `STAFF_SINK_SMS`                                                   | Sink addresses used when `LIVE_OUTBOUND` is unset                 |
-| `LIVE_OUTBOUND`                                                                        | **Unset by default.** Set to `1` only with staff + exec approval. |
+| `STAFF_SINK_EMAIL`, `STAFF_SINK_SMS`                                                   | Sink addresses used when `TENACIOUS_OUTBOUND_ENABLED` is unset    |
+| `TENACIOUS_OUTBOUND_ENABLED`                                                           | **Unset by default.** Set to `1` only with staff + exec approval. |
 
 ## Act I — Eval
 
