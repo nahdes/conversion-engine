@@ -1,0 +1,126 @@
+{
+  "prospect_domain": "semantica-labs.com",
+  "prospect_name": "Semantica",
+  "generated_at": "2026-04-23T12:43:31.105290+00:00",
+  "primary_segment_match": "abstain",
+  "segment_confidence": 0.0,
+  "ai_maturity": {
+    "score": 1,
+    "confidence": 0.55,
+    "justifications": [
+      {
+        "signal": "ai_adjacent_open_roles",
+        "status": "job-post scrape not wired \u2014 absence is not evidence, marking weak",
+        "weight": "high",
+        "confidence": "low"
+      },
+      {
+        "signal": "named_ai_ml_leadership",
+        "status": "no AI/ML leadership event in Crunchbase row",
+        "weight": "high",
+        "confidence": "medium"
+      },
+      {
+        "signal": "github_org_activity",
+        "status": "not wired \u2014 public GitHub org discovery pending Day 3",
+        "weight": "medium",
+        "confidence": "low"
+      },
+      {
+        "signal": "executive_commentary",
+        "status": "AI language in Crunchbase about / description text",
+        "weight": "medium",
+        "confidence": "medium"
+      },
+      {
+        "signal": "modern_data_ml_stack",
+        "status": "no ML-stack signal in BuiltWith data",
+        "weight": "low",
+        "confidence": "medium"
+      },
+      {
+        "signal": "strategic_communications",
+        "status": "Crunchbase self-declared industries: artificial intelligence (ai), machine learning",
+        "weight": "medium",
+        "confidence": "high"
+      }
+    ]
+  },
+  "hiring_velocity": {
+    "open_roles_today": 0,
+    "open_roles_60_days_ago": 0,
+    "velocity_label": "insufficient_signal",
+    "signal_confidence": 0.0,
+    "sources": []
+  },
+  "buying_window_signals": {
+    "funding_event": {
+      "detected": true,
+      "stage": "other",
+      "closed_at": "2017-07-21",
+      "source_url": "https://www.crunchbase.com/organization/semantica"
+    },
+    "layoff_event": {
+      "detected": false
+    },
+    "leadership_change": {
+      "detected": false,
+      "role": "none"
+    }
+  },
+  "tech_stack": [
+    "Sedo Hosting",
+    "NameSilo DNS"
+  ],
+  "bench_to_brief_match": {
+    "required_stacks": [],
+    "bench_available": true,
+    "gaps": []
+  },
+  "data_sources_checked": [
+    {
+      "source": "crunchbase_odm",
+      "status": "success",
+      "fetched_at": "2026-04-23T12:43:31.105310+00:00"
+    },
+    {
+      "source": "layoffs_fyi",
+      "status": "no_data",
+      "fetched_at": "2026-04-23T12:43:31.105310+00:00"
+    },
+    {
+      "source": "builtwith",
+      "status": "success",
+      "fetched_at": "2026-04-23T12:43:31.105310+00:00"
+    },
+    {
+      "source": "company_careers_page",
+      "status": "no_data",
+      "error_message": "no careers_url supplied",
+      "fetched_at": "2026-04-23T12:43:31.105310+00:00"
+    }
+  ],
+  "honesty_flags": [
+    "weak_hiring_velocity_signal",
+    "weak_ai_maturity_signal",
+    "tech_stack_inferred_not_confirmed"
+  ],
+  "_extras": {
+    "crunchbase_id": "semantica",
+    "crunchbase_matched": true,
+    "crunchbase_name": "Semantica",
+    "industries": [
+      "Artificial Intelligence (AI)",
+      "Machine Learning",
+      "Marketing"
+    ],
+    "primary_industry": "Artificial Intelligence (AI)",
+    "region": "NA",
+    "country": "US",
+    "num_employees": "1-10",
+    "segment_rationale": [
+      "no qualifying segment rule fired"
+    ],
+    "segment_disqualifiers": []
+  }
+}

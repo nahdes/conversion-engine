@@ -1,0 +1,9 @@
+{
+  "status": "abstained",
+  "reason": "no gap signal with >=2 high- or medium-confidence peer_evidence rows and source_urls",
+  "prospect_domain": "www.xpconsult.dk",
+  "prospect_sector": "Information Technology",
+  "prospect_ai_maturity_score": 0,
+  "peer_pool_size": 20,
+  "generated_at": "2026-04-23T12:43:32.165012+00:00"
+}

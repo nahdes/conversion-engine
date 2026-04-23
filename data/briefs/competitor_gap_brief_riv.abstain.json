@@ -1,0 +1,9 @@
+{
+  "status": "abstained",
+  "reason": "only 4 peers with known headcount_band (schema minimum 5); no gap signal with >=2 high- or medium-confidence peer_evidence rows and source_urls",
+  "prospect_domain": "riv.co",
+  "prospect_sector": "Apps",
+  "prospect_ai_maturity_score": 1,
+  "peer_pool_size": 4,
+  "generated_at": "2026-04-23T12:43:31.004537+00:00"
+}

@@ -1,0 +1,162 @@
+{
+  "prospect_domain": "www.whitehilltech.com",
+  "prospect_sector": "Software",
+  "generated_at": "2026-04-23T12:43:58.036121+00:00",
+  "prospect_ai_maturity_score": 0,
+  "sector_top_quartile_benchmark": 1.0,
+  "competitors_analyzed": [
+    {
+      "name": "WISEiTECH",
+      "domain": "www.wise.co.kr",
+      "ai_maturity_score": 1,
+      "ai_maturity_justification": [
+        "no AI/ML leadership event in Crunchbase row",
+        "AI language in Crunchbase about / description text",
+        "no ML-stack signal in BuiltWith data",
+        "Crunchbase self-declared industries: big data, machine learning"
+      ],
+      "headcount_band": "80_to_200",
+      "top_quartile": true,
+      "sources_checked": [
+        "https://www.crunchbase.com/organization/wiseitech"
+      ]
+    },
+    {
+      "name": "Xrosswork",
+      "domain": "xrosswork.com",
+      "ai_maturity_score": 0,
+      "ai_maturity_justification": [
+        "no AI/ML leadership event in Crunchbase row",
+        "no ML-stack signal in BuiltWith data",
+        "Crunchbase self-declared industries: artificial intelligence (ai)"
+      ],
+      "headcount_band": "15_to_80",
+      "top_quartile": false,
+      "sources_checked": [
+        "https://www.crunchbase.com/organization/xrosswork"
+      ]
+    },
+    {
+      "name": "DigiTelescope",
+      "domain": "digitelescope.com",
+      "ai_maturity_score": 0,
+      "ai_maturity_justification": [
+        "no AI/ML leadership event in Crunchbase row",
+        "no ML-stack signal in BuiltWith data",
+        "Crunchbase self-declared industries: artificial intelligence (ai), machine learning"
+      ],
+      "headcount_band": "80_to_200",
+      "top_quartile": false,
+      "sources_checked": [
+        "https://www.crunchbase.com/organization/digitelescope"
+      ]
+    },
+    {
+      "name": "Yellow.ai",
+      "domain": "yellow.ai",
+      "ai_maturity_score": 1,
+      "ai_maturity_justification": [
+        "no AI/ML leadership event in Crunchbase row",
+        "AI language in Crunchbase about / description text",
+        "no ML-stack signal in BuiltWith data",
+        "Crunchbase self-declared industries: artificial intelligence (ai), generative ai"
+      ],
+      "headcount_band": "500_to_2000",
+      "top_quartile": true,
+      "sources_checked": [
+        "https://www.crunchbase.com/organization/yellow-messenger"
+      ]
+    },
+    {
+      "name": "CreditNirvana",
+      "domain": "www.creditnirvana.ai",
+      "ai_maturity_score": 1,
+      "ai_maturity_justification": [
+        "no AI/ML leadership event in Crunchbase row",
+        "AI language in Crunchbase about / description text",
+        "no ML-stack signal in BuiltWith data",
+        "Crunchbase self-declared industries: artificial intelligence (ai), machine learning"
+      ],
+      "headcount_band": "15_to_80",
+      "top_quartile": true,
+      "sources_checked": [
+        "https://www.crunchbase.com/organization/creditnirvana"
+      ]
+    },
+    {
+      "name": "SpotRight",
+      "domain": "spotright.com",
+      "ai_maturity_score": 1,
+      "ai_maturity_justification": [
+        "no AI/ML leadership event in Crunchbase row",
+        "AI language in Crunchbase about / description text",
+        "no ML-stack signal in BuiltWith data",
+        "Crunchbase self-declared industries: artificial intelligence (ai), big data"
+      ],
+      "headcount_band": "15_to_80",
+      "top_quartile": true,
+      "sources_checked": [
+        "https://www.crunchbase.com/organization/spotright"
+      ]
+    }
+  ],
+  "gap_findings": [
+    {
+      "practice": "Public AI-strategy commentary from leadership",
+      "peer_evidence": [
+        {
+          "competitor_name": "WISEiTECH",
+          "evidence": "AI language in Crunchbase about / description text",
+          "source_url": "https://www.crunchbase.com/organization/wiseitech"
+        },
+        {
+          "competitor_name": "Yellow.ai",
+          "evidence": "AI language in Crunchbase about / description text",
+          "source_url": "https://www.crunchbase.com/organization/yellow-messenger"
+        },
+        {
+          "competitor_name": "CreditNirvana",
+          "evidence": "AI language in Crunchbase about / description text",
+          "source_url": "https://www.crunchbase.com/organization/creditnirvana"
+        }
+      ],
+      "prospect_state": "no AI language in Crunchbase description; press scrape pending",
+      "confidence": "low",
+      "segment_relevance": [
+        "segment_1_series_a_b"
+      ]
+    },
+    {
+      "practice": "Self-declared AI positioning in investor-facing materials",
+      "peer_evidence": [
+        {
+          "competitor_name": "WISEiTECH",
+          "evidence": "Crunchbase self-declared industries: big data, machine learning",
+          "source_url": "https://www.crunchbase.com/organization/wiseitech"
+        },
+        {
+          "competitor_name": "Xrosswork",
+          "evidence": "Crunchbase self-declared industries: artificial intelligence (ai)",
+          "source_url": "https://www.crunchbase.com/organization/xrosswork"
+        },
+        {
+          "competitor_name": "DigiTelescope",
+          "evidence": "Crunchbase self-declared industries: artificial intelligence (ai), machine learning",
+          "source_url": "https://www.crunchbase.com/organization/digitelescope"
+        }
+      ],
+      "prospect_state": "no AI-adjacent industry tags; press scrape pending",
+      "confidence": "high",
+      "segment_relevance": [
+        "segment_1_series_a_b",
+        "segment_4_specialized_capability"
+      ]
+    }
+  ],
+  "suggested_pitch_shift": "Use the \"Public AI-strategy commentary from leadership\" finding as the Email-2 research data point. Start with the low-confidence finding and frame as a question, not an assertion.",
+  "gap_quality_self_check": {
+    "all_peer_evidence_has_source_url": true,
+    "at_least_one_gap_high_confidence": true,
+    "prospect_silent_but_sophisticated_risk": true
+  }
+}

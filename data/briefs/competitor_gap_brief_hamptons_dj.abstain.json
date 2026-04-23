@@ -1,0 +1,9 @@
+{
+  "status": "abstained",
+  "reason": "only 0 peers with known headcount_band (schema minimum 5); no gap signal with >=2 high- or medium-confidence peer_evidence rows and source_urls",
+  "prospect_domain": "www.thehamptonsdj.com",
+  "prospect_sector": "Digital Entertainment",
+  "prospect_ai_maturity_score": 0,
+  "peer_pool_size": 0,
+  "generated_at": "2026-04-23T12:43:31.713860+00:00"
+}
