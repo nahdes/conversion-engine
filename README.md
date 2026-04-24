@@ -144,28 +144,78 @@ HubSpot contact with enrichment timestamp.
 
 ```
 conversion-engine/
-├── agent/              Act II handlers + orchestrator
+├── agent/              Act II handlers + orchestrator + Act IV mechanism
 │   ├── email_handler.py   Resend outbound + reply webhook parser
-│   ├── sms_handler.py     Africa's Talking SMS + STOP keywords
+│   ├── sms_handler.py     Africa's Talking SMS + STOP keywords + warm gate
 │   ├── hubspot_handler.py Contact upsert + engagement note
-│   ├── calendar_handler.py Cal.com slot lookup + booking
+│   ├── hubspot_mcp.py     MCP adapter (MCP-first, REST fallback)
+│   ├── calendar_handler.py Cal.com slot lookup + booking + HubSpot sync
 │   ├── enrichment.py      Crunchbase + layoffs + jobs + AI maturity
+│   ├── icp_classifier.py  4-segment + abstain classifier (5-rule precedence)
+│   ├── mechanism.py       Act IV V1/V2/V3 compose guards
 │   ├── main_agent.py      Orchestrator: enrich → compose → write → send
 │   ├── server.py          FastAPI webhook receiver
 │   └── requirements.txt
-├── eval/               Act I τ²-Bench reproduction
-│   ├── run_baseline.py    Harness + Langfuse logger + Wilson CI
-│   ├── score_log.json     Per-trial summary (pass@1, CI, cost, latency)
-│   ├── trace_log.jsonl    Per-task trajectory + cost + latency + trace_id
-│   └── tau2-bench/        Upstream benchmark (sierra-research/tau2-bench)
+├── eval/               Act I τ²-Bench reproduction + Act IV ablation
+│   ├── run_baseline.py       τ² harness + Langfuse logger + Wilson CI
+│   ├── tenacious_holdout.py  Act IV ablation harness (5 conditions × 20 tasks)
+│   ├── score_log.json        5 trials × 30 tasks = 150 sims, pass@1 = 0.7267
+│   ├── trace_log.jsonl       150 per-simulation rows
+│   ├── ablation_results.json Delta A + Delta B stat tests
+│   ├── held_out_traces.jsonl 100 per-task ablation traces
+│   ├── method.md             Act IV mechanism writeup
+│   └── tau2-bench/           Upstream benchmark (sierra-research/tau2-bench)
+├── probes/             Act III probe library (31 probes across 10 categories)
+│   ├── probe_library.md
+│   ├── failure_taxonomy.md
+│   ├── target_failure_mode.md
+│   ├── run_probes.py
+│   └── run_log.jsonl
 ├── data/
 │   ├── crunchbase-companies-information.csv
 │   ├── layoffs.csv
-│   └── briefs/            Generated hiring_signal_brief_*.json etc.
-├── probes/             Act III (final submission)
-├── baseline.md         Act I writeup (max 400 words)
+│   └── briefs/            Generated hiring_signal_brief_*.json + *_abstain.json
+├── policy/             Data-handling policy + acknowledgement
+├── schemas/            JSON schemas for hiring + gap briefs
+├── seed/               Tenacious reference materials (icp, style guide, pricing)
+├── baseline.md         Act I reproduction notes
+├── evidence_graph.json 21 memo claims → trace IDs / invoice lines / sources
+├── invoice_summary.json Cost attribution + cost-per-qualified-lead math
+├── PROJECT_WALKTHROUGH.md Single-source project guide (md version)
+├── project_walkthrough.tex / .pdf Same guide compiled for submission
+├── DEMO_RUNBOOK.md     8-minute video recording script
+├── demo_stage.py       Demo harness — stages 3 briefs + 5 runners
 └── README.md
 ```
+
+## Reproducing the ablations
+
+```bash
+# Offline dry-run (deterministic stubs, no API key, ~1 s):
+python eval/tenacious_holdout.py --dry-run \
+    --slice held_out --conditions V0 V1 V2 V3 AutoAgent
+
+# Live LLM run (DeepSeek via OpenRouter, ~$0.60, ~5–8 min):
+python eval/tenacious_holdout.py \
+    --slice held_out --conditions V0 V1 V2 V3 AutoAgent
+
+# Stat test only (reads saved eval/ablation_results.json):
+python eval/tenacious_holdout.py --stat-test V3 V0 --metric contamination_rate
+```
+
+## Writeups index
+
+| File | What it covers |
+|---|---|
+| `baseline.md` | τ²-Bench reproduction notes |
+| `eval/method.md` | Act IV mechanism + ablation design |
+| `probes/probe_library.md` | 31 probes across 10 rubric categories |
+| `probes/failure_taxonomy.md` | Probes grouped by category with trigger rates |
+| `probes/target_failure_mode.md` | P-SIG-01 selection + business-cost derivation |
+| `report_interim.pdf` | Interim report (submitted Wednesday) |
+| `PROJECT_WALKTHROUGH.md` + `.pdf` | Comprehensive end-to-end walkthrough |
+| `DEMO_RUNBOOK.md` | 8-minute video recording script |
+| `memo.pdf` | 2-page final decision memo *(pending)* |
 
 ## Budget
 
