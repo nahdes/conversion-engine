@@ -1,0 +1,93 @@
+{
+  "prospect_domain": "recalibrate.example.com",
+  "prospect_name": "Recalibrate Systems Inc",
+  "generated_at": "2026-04-24T10:54:24.737274+00:00",
+  "primary_segment_match": "segment_2_mid_market_restructure",
+  "segment_confidence": 0.85,
+  "eng_roles_open": 4,
+  "ai_maturity": {
+    "score": 1,
+    "label": "emerging",
+    "confidence": 0.55,
+    "justifications": [
+      {
+        "signal": "ai_adjacent_open_roles",
+        "status": "1 AI-adjacent roles found on careers page",
+        "weight": "high",
+        "confidence": "medium"
+      },
+      {
+        "signal": "named_ai_ml_leadership",
+        "status": "no AI/ML leadership event",
+        "weight": "high",
+        "confidence": "medium"
+      }
+    ]
+  },
+  "hiring_velocity": {
+    "open_roles_today": 4,
+    "open_roles_60_days_ago": 8,
+    "velocity_label": "cautious",
+    "signal_confidence": 0.78,
+    "sources": [
+      "https://recalibrate.example.com/careers"
+    ]
+  },
+  "buying_window_signals": {
+    "funding_event": {
+      "detected": true,
+      "stage": "series_b",
+      "closed_at": "2026-03-25",
+      "amount_usd": 27000000,
+      "source_url": "https://crunchbase.com/organization/recalibrate"
+    },
+    "layoff_event": {
+      "detected": true,
+      "percent_cut": 0.15,
+      "announced_at": "2026-03-10",
+      "source_url": "https://layoffs.fyi/recalibrate"
+    },
+    "leadership_change": {
+      "detected": false,
+      "role": "none"
+    }
+  },
+  "tech_stack": [
+    "Java",
+    "Kafka",
+    "GCP"
+  ],
+  "bench_to_brief_match": {
+    "required_stacks": [
+      "data",
+      "ml"
+    ],
+    "bench_available": true,
+    "gaps": []
+  },
+  "data_sources_checked": [
+    {
+      "source": "crunchbase_odm",
+      "status": "success",
+      "fetched_at": "2026-04-24T10:54:24.737283+00:00"
+    },
+    {
+      "source": "layoffs_fyi",
+      "status": "success",
+      "fetched_at": "2026-04-24T10:54:24.737285+00:00"
+    },
+    {
+      "source": "builtwith",
+      "status": "success",
+      "fetched_at": "2026-04-24T10:54:24.737286+00:00"
+    },
+    {
+      "source": "company_careers_page",
+      "status": "success",
+      "fetched_at": "2026-04-24T10:54:24.737288+00:00"
+    }
+  ],
+  "honesty_flags": [
+    "layoff_overrides_funding"
+  ]
+}
