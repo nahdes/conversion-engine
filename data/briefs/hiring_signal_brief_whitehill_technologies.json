@@ -1,12 +1,12 @@
 {
   "prospect_domain": "www.whitehilltech.com",
   "prospect_name": "Whitehill Technologies",
-  "generated_at": "2026-04-23T12:43:58.017988+00:00",
+  "generated_at": "2026-04-24T17:20:37.950308+00:00",
   "primary_segment_match": "abstain",
   "segment_confidence": 0.0,
   "ai_maturity": {
     "score": 0,
-    "confidence": 0.4,
+    "confidence": 0.0,
     "justifications": [
       {
         "signal": "ai_adjacent_open_roles",
@@ -44,14 +44,18 @@
         "weight": "low",
         "confidence": "low"
       }
-    ]
+    ],
+    "silent_company_acknowledgement": "No public AI signal found across six inputs (AI-adjacent roles, named AI/ML leadership, GitHub org, exec commentary, modern ML stack, strategic comms). Absence of public signal is not proof of absence \u2014 some teams ship AI work behind closed doors. The composer must ask rather than assert."
   },
   "hiring_velocity": {
     "open_roles_today": 0,
     "open_roles_60_days_ago": 0,
     "velocity_label": "insufficient_signal",
     "signal_confidence": 0.0,
-    "sources": []
+    "sources": [],
+    "window_days": 60,
+    "prior_snapshot_captured_at": null,
+    "note": "today scrape status=no_data; cannot compute velocity. Absence of signal is not evidence the company is not hiring."
   },
   "buying_window_signals": {
     "funding_event": {
@@ -61,11 +65,13 @@
       "source_url": "https://www.crunchbase.com/organization/whitehill-technologies"
     },
     "layoff_event": {
-      "detected": false
+      "detected": false,
+      "reason": "no_matching_company"
     },
     "leadership_change": {
       "detected": false,
-      "role": "none"
+      "role": "none",
+      "reason": "no_leadership_records"
     }
   },
   "tech_stack": [
@@ -82,23 +88,23 @@
     {
       "source": "crunchbase_odm",
       "status": "success",
-      "fetched_at": "2026-04-23T12:43:58.017999+00:00"
+      "fetched_at": "2026-04-24T17:20:37.950339+00:00"
     },
     {
       "source": "layoffs_fyi",
       "status": "no_data",
-      "fetched_at": "2026-04-23T12:43:58.017999+00:00"
+      "fetched_at": "2026-04-24T17:20:37.950339+00:00"
     },
     {
       "source": "builtwith",
       "status": "success",
-      "fetched_at": "2026-04-23T12:43:58.017999+00:00"
+      "fetched_at": "2026-04-24T17:20:37.950339+00:00"
     },
     {
       "source": "company_careers_page",
       "status": "no_data",
       "error_message": "no careers_url supplied",
-      "fetched_at": "2026-04-23T12:43:58.017999+00:00"
+      "fetched_at": "2026-04-24T17:20:37.950339+00:00"
     }
   ],
   "honesty_flags": [

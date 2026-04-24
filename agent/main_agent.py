@@ -3,6 +3,7 @@ from dotenv import load_dotenv
 from enrichment import build_hiring_signal_brief
 from email_handler import send_outreach
 from hubspot_handler import upsert_contact, log_note
+from channel_router import ChannelRouter, ChannelTransitionError
 from langfuse import Langfuse
 
 load_dotenv(override=True)
@@ -175,9 +176,14 @@ def run_prospect(company: str, email: str, careers_url: str = None):
         with lf.start_as_current_observation(
             name='hubspot_write', as_type='span',
         ) as span:
+            # Event point 1 of 3 for HubSpot in this flow:
+            #   1. upsert + enrichment fields here
+            #   2. log_note with the full brief JSON (audit evidence)
+            #   3. router.on_email_send after Resend accepts (below)
             contact_id = upsert_contact(email, {
                 'company': company,
                 'hs_lead_status': 'NEW',
+                'tenacious_channel_state': 'cold',
                 'crunchbase_id': brief.get('_extras', {}).get('crunchbase_id', ''),
                 'ai_maturity_score': str(brief['ai_maturity']['score']),
                 'primary_segment_match': brief.get('primary_segment_match', ''),
@@ -193,11 +199,21 @@ def run_prospect(company: str, email: str, careers_url: str = None):
         ) as span:
             email_id = send_outreach(
                 destination, email_content['subject'], email_content['html'])
-            span.update(output={'email_id': email_id})
+            # Every channel advance goes through the router so warm-lead
+            # gating, CRM state, and audit notes stay in one place.
+            router = ChannelRouter(contact_id, contact_props={
+                'tenacious_channel_state': 'cold'})
+            router.on_email_send(email_id=email_id,
+                                 subject=email_content['subject'],
+                                 destination=destination,
+                                 is_live=is_live)
+            span.update(output={'email_id': email_id,
+                                'router_state': router.state.value})
 
         root_span.update(output={
             'email_id': email_id, 'contact_id': contact_id,
             'live_outbound': is_live, 'destination': destination,
+            'router_state': router.state.value,
         })
 
     lf.flush()

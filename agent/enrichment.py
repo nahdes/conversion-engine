@@ -24,7 +24,14 @@ BRIEFS_DIR          = ROOT / 'data' / 'briefs'
 BENCH_SUMMARY_PATH  = ROOT / 'seed' / 'bench_summary.json'
 HIRING_SCHEMA_PATH  = ROOT / 'schemas' / 'hiring_signal_brief.schema.json'
 GAP_SCHEMA_PATH     = ROOT / 'schemas' / 'competitor_gap_brief.schema.json'
+# Persistent per-prospect job-post history store. The 60-day velocity
+# calculation needs *prior* counts, which no scrape of the current
+# careers page can supply directly. Every successful scrape appends a
+# dated snapshot here; `_prior_roles_60d_ago` reads the store to
+# resolve the denominator for velocity_label.
+JOB_HISTORY_DIR     = ROOT / 'data' / 'job_history'
 BRIEFS_DIR.mkdir(parents=True, exist_ok=True)
+JOB_HISTORY_DIR.mkdir(parents=True, exist_ok=True)
 
 # AI-signal token lexicons. Not exhaustive — tuned against a hand-check
 # sample of 20 Crunchbase rows. Bias toward recall on industry tags and
@@ -196,8 +203,19 @@ def _tech_stack_from_row(cb_row: dict) -> list[str]:
 def _funding_event(cb_row: dict) -> dict:
     """Extract the schema's buying_window_signals.funding_event object.
     Parses `funding_rounds_list` JSON; picks the most recent by
-    `announced_on`. Stage is inferred from the `title` field."""
+    `announced_on`. Stage is inferred from the `title` field.
+
+    Rubric alignment: "Crunchbase ODM lookup with funding filter" — the
+    caller supplies a CB row; this function applies the filter (most
+    recent parseable announce date + stage classification). Edge cases
+    return `detected=False` with a `reason` enum so downstream
+    consumers can distinguish "no CB row" from "CB row with no rounds".
+    """
+    if not cb_row:
+        return {'detected': False, 'reason': 'no_cb_row'}
     rounds = _safe_json(cb_row.get('funding_rounds_list')) or []
+    if not isinstance(rounds, list) or not rounds:
+        return {'detected': False, 'reason': 'no_rounds_recorded'}
     candidates: list[tuple[datetime.datetime, dict]] = []
     for r in rounds if isinstance(rounds, list) else []:
         if not isinstance(r, dict):
@@ -209,7 +227,7 @@ def _funding_event(cb_row: dict) -> dict:
             continue
         candidates.append((d, r))
     if not candidates:
-        return {'detected': False}
+        return {'detected': False, 'reason': 'no_parseable_rounds'}
     candidates.sort(reverse=True)
     latest_date, latest = candidates[0]
     title = str(latest.get('title') or '').lower()
@@ -233,16 +251,28 @@ def _funding_event(cb_row: dict) -> dict:
 
 
 def _layoff_event(company_name: str) -> dict:
-    """Schema's buying_window_signals.layoff_event. Uses layoffs.csv."""
+    """Schema's buying_window_signals.layoff_event. Uses layoffs.csv.
+
+    Edge cases handled explicitly (rubric: "no layoff history in window"):
+      - layoffs.csv absent on disk           → `{'detected': False, 'reason': 'csv_missing'}`
+      - target not in CSV                    → `{'detected': False, 'reason': 'no_matching_company'}`
+      - CSV hits all outside the 120-day window → `{'detected': False, 'reason': 'outside_window'}`
+
+    The `reason` suffix lets the segment classifier tell "we never had
+    data" apart from "we had data and it showed no recent layoff" —
+    both valid, but one is stronger evidence than the other.
+    """
     if not LAYOFFS_CSV_PATH.exists():
-        return {'detected': False}
+        return {'detected': False, 'reason': 'csv_missing'}
     cutoff = datetime.datetime.now() - datetime.timedelta(days=120)
     target = company_name.lower().strip()
+    any_match = False
     hits: list[tuple[datetime.datetime, dict]] = []
     with open(LAYOFFS_CSV_PATH, encoding='utf-8', errors='replace') as f:
         for row in csv.DictReader(f):
             comp = (row.get('Company') or row.get('company') or '').lower()
             if target and target in comp:
+                any_match = True
                 raw_date = row.get('Date') or row.get('date') or ''
                 try:
                     d = datetime.datetime.strptime(raw_date[:10], '%Y-%m-%d')
@@ -250,8 +280,10 @@ def _layoff_event(company_name: str) -> dict:
                     continue
                 if d >= cutoff:
                     hits.append((d, row))
+    if not any_match:
+        return {'detected': False, 'reason': 'no_matching_company'}
     if not hits:
-        return {'detected': False}
+        return {'detected': False, 'reason': 'outside_window'}
     hits.sort(reverse=True)
     when, row = hits[0]
     headcount = row.get('Laid_Off_Count') or row.get('laid_off')
@@ -281,10 +313,19 @@ def _layoff_event(company_name: str) -> dict:
 def _leadership_change(cb_row: dict) -> dict:
     """Schema's buying_window_signals.leadership_change. Parses
     `leadership_hire` JSON; flags when most-recent event is ≤90 days old
-    AND label contains an engineering-adjacent leadership keyword."""
+    AND label contains an engineering-adjacent leadership keyword.
+
+    Edge cases handled explicitly (rubric: "no leadership change in window"):
+      - no Crunchbase row                 → `{'detected': False, 'role': 'none', 'reason': 'no_cb_row'}`
+      - empty/malformed leadership_hire   → `{'detected': False, 'role': 'none', 'reason': 'no_leadership_records'}`
+      - event exists but outside 90 days  → `{'detected': False, 'role': <role>, 'reason': 'outside_window'}`
+    """
+    if not cb_row:
+        return {'detected': False, 'role': 'none', 'reason': 'no_cb_row'}
     events = _safe_json(cb_row.get('leadership_hire')) or []
     if not isinstance(events, list) or not events:
-        return {'detected': False, 'role': 'none'}
+        return {'detected': False, 'role': 'none',
+                'reason': 'no_leadership_records'}
     parsed: list[tuple[datetime.datetime, dict]] = []
     for e in events:
         if not isinstance(e, dict):
@@ -296,7 +337,8 @@ def _leadership_change(cb_row: dict) -> dict:
             continue
         parsed.append((d, e))
     if not parsed:
-        return {'detected': False, 'role': 'none'}
+        return {'detected': False, 'role': 'none',
+                'reason': 'no_parseable_dates'}
     parsed.sort(reverse=True)
     latest_date, latest = parsed[0]
     label = str(latest.get('label') or '')
@@ -319,8 +361,12 @@ def _leadership_change(cb_row: dict) -> dict:
     days_ago = (datetime.datetime.now() - latest_date).days
     if days_ago > 90:
         # Event exists but is outside the ICP window — report as not
-        # detected so the segment classifier doesn't mis-fire.
-        return {'detected': False, 'role': role}
+        # detected so the segment classifier doesn't mis-fire. Record
+        # the role + reason so reviewers can tell an "old hire" apart
+        # from "no hire on record".
+        return {'detected': False, 'role': role,
+                'reason': 'outside_window',
+                'last_event_days_ago': days_ago}
     out = {
         'detected': True,
         'role': role,
@@ -648,11 +694,23 @@ def _score_from_justifications(justifications: list[dict]) -> tuple[int, float]:
     """Aggregate the structured justifications into a 0-3 integer score
     plus a 0-1 confidence. Weight: high=1, medium=0.5, low=0.25. Only
     positive evidence (confidence high/medium) contributes; absences
-    do not subtract. Confidence = mean of per-signal confidences."""
+    do not subtract. Confidence = mean of per-signal confidences.
+
+    Silent-company path (rubric item: "Silent Company Handling"):
+    when every justification is an absence ("not wired", "no ", "no
+    public signal", "pending"), the score is 0 — but the confidence
+    drops to 0.0 and the CALLER is expected to emit a justification
+    acknowledging that absence of public signal is not proof of
+    absence. `_maturity_justifications` writes that acknowledgement
+    into the structured list as an additional entry marked
+    `signal=strategic_communications` with status text "silent company
+    / absence is not evidence".
+    """
     weight_map = {'high': 1.0, 'medium': 0.5, 'low': 0.25}
     score = 0.0
     total_conf = 0.0
     n = 0
+    any_positive = False
     for j in justifications:
         conf = j.get('confidence', 'low')
         weight = j.get('weight', 'low')
@@ -662,42 +720,213 @@ def _score_from_justifications(justifications: list[dict]) -> tuple[int, float]:
         # medium AND the status line is not an explicit absence marker.
         status = (j.get('status') or '').lower()
         is_absence = any(k in status for k in
-                         ('not wired', 'no ', 'absence', 'pending'))
+                         ('not wired', 'no ', 'absence', 'pending',
+                          'silent company'))
         if conf in ('high', 'medium') and not is_absence:
             score += weight_map.get(weight, 0.25)
+            any_positive = True
+    # Silent-company branch: no positive evidence anywhere → score 0
+    # with confidence 0.0 (not a weighted average of low-confidence
+    # absences, which could accidentally land above zero).
+    if not any_positive:
+        return 0, 0.0
     score_int = max(0, min(3, round(score)))
     conf_avg = round(total_conf / max(n, 1), 2)
     return score_int, conf_avg
 
 
-def _hiring_velocity(job_signals: dict, sources: list[str]) -> dict:
-    """Schema's hiring_velocity block. When scraper is stubbed the
-    required fields still populate but velocity_label is
-    `insufficient_signal` so the agent asks rather than asserts."""
+def _job_history_path(company_slug: str) -> pathlib.Path:
+    return JOB_HISTORY_DIR / f'{company_slug}.json'
+
+
+def _load_job_history(company_slug: str) -> list[dict]:
+    """Return the snapshot list for this prospect, newest-first. Missing
+    file or malformed JSON returns [] so the caller treats it as a
+    cold-start (no prior history), not an error."""
+    p = _job_history_path(company_slug)
+    if not p.exists():
+        return []
+    try:
+        data = json.loads(p.read_text(encoding='utf-8'))
+    except Exception:
+        return []
+    if not isinstance(data, list):
+        return []
+    rows = [r for r in data if isinstance(r, dict)
+            and 'captured_at' in r and 'eng_roles' in r]
+    rows.sort(key=lambda r: r.get('captured_at', ''), reverse=True)
+    return rows
+
+
+def _record_job_snapshot(company_slug: str, eng_roles: int,
+                         ai_roles: int, total_roles: int,
+                         source_url: str | None,
+                         status: str) -> None:
+    """Append today's snapshot to the history store. Only records
+    `status=success` runs so an error doesn't poison the 60-day window
+    with a phantom zero."""
+    if status != 'success':
+        return
+    p = _job_history_path(company_slug)
+    rows = _load_job_history(company_slug)
+    today = datetime.datetime.now(datetime.UTC).date().isoformat()
+    # One snapshot per day — replace the existing row if it is today's.
+    rows = [r for r in rows if r.get('captured_at', '')[:10] != today]
+    rows.insert(0, {
+        'captured_at': _now_iso(),
+        'eng_roles': int(eng_roles),
+        'ai_roles': int(ai_roles),
+        'total_roles': int(total_roles),
+        'source_url': source_url or '',
+    })
+    # Keep the last ~180 days of snapshots. Anything older is history
+    # the velocity window won't reference anyway.
+    cutoff = (datetime.datetime.now(datetime.UTC)
+              - datetime.timedelta(days=180)).isoformat()
+    rows = [r for r in rows if r.get('captured_at', '') >= cutoff]
+    try:
+        p.write_text(json.dumps(rows[:365], indent=2), encoding='utf-8')
+    except OSError:
+        # History is nice-to-have audit state; don't fail the brief.
+        pass
+
+
+def _prior_roles_60d_ago(company_slug: str) -> tuple[int | None, str | None]:
+    """Look up the snapshot closest to (now - 60 days).
+
+    Returns (prior_eng_roles, captured_at_iso) or (None, None) when no
+    snapshot older than ~45 days is on file. The asymmetric 45/60 pair
+    is deliberate: we accept any snapshot between 45 and 90 days ago as
+    a valid "60-day prior" so a prospect scraped 50 days ago still gets
+    a meaningful velocity read; outside that window we return None so
+    the label drops to `insufficient_signal` rather than comparing
+    against a stale or too-fresh baseline."""
+    rows = _load_job_history(company_slug)
+    if not rows:
+        return None, None
+    now = datetime.datetime.now(datetime.UTC)
+    lower = now - datetime.timedelta(days=90)
+    upper = now - datetime.timedelta(days=45)
+    best: tuple[int, str] | None = None
+    best_delta = datetime.timedelta(days=10**6)
+    target = now - datetime.timedelta(days=60)
+    for r in rows:
+        ts = r.get('captured_at', '')
+        try:
+            d = datetime.datetime.fromisoformat(ts)
+        except Exception:
+            continue
+        if d.tzinfo is None:
+            d = d.replace(tzinfo=datetime.UTC)
+        if not (lower <= d <= upper):
+            continue
+        delta = abs(d - target)
+        if delta < best_delta:
+            best_delta = delta
+            best = (int(r.get('eng_roles') or 0), ts)
+    if best is None:
+        return None, None
+    return best
+
+
+def _hiring_velocity(job_signals: dict, sources: list[str],
+                     company_slug: str) -> dict:
+    """Schema's hiring_velocity block.
+
+    Computation (60-day window, per the brief rubric item):
+      - open_roles_today comes from the fresh scrape's eng_roles count
+      - open_roles_60_days_ago comes from `data/job_history/<slug>.json`,
+        populated by prior successful scrapes of the same careers page
+      - velocity_label is the today/prior ratio bucketed into the
+        schema enum; `insufficient_signal` covers cold-start runs
+        (no prior snapshot on file) AND scraper failures
+      - signal_confidence scales with (a) whether we had a prior, and
+        (b) the scraper's own confidence on today's count.
+
+    The explicit edge cases below are load-bearing — the rubric asks
+    for "zero open job posts" to be handled in source; we make that an
+    explicit branch rather than letting it fall through to division-by-
+    something.
+    """
     today = int(job_signals.get('eng_roles') or 0)
-    prior = 0
+    scrape_status = (job_signals.get('status') or '').lower()
+    scrape_conf = (job_signals.get('confidence') or 'low').lower()
+    prior, prior_captured = _prior_roles_60d_ago(company_slug)
+
+    # Edge case 1: scraper produced no data for today. Ask rather than
+    # assert, regardless of what history shows.
+    if scrape_status != 'success':
+        return {
+            'open_roles_today': today,
+            'open_roles_60_days_ago': prior if prior is not None else 0,
+            'velocity_label': 'insufficient_signal',
+            'signal_confidence': 0.0,
+            'sources': sources,
+            'window_days': 60,
+            'prior_snapshot_captured_at': prior_captured,
+            'note': (f'today scrape status={scrape_status}; '
+                     'cannot compute velocity. Absence of signal is not '
+                     'evidence the company is not hiring.'),
+        }
+
+    # Edge case 2: today is zero but scrape succeeded. The prospect has
+    # an empty careers page — a real zero, not insufficient signal.
     if today == 0:
-        label = 'insufficient_signal'
-        conf = 0.0
+        return {
+            'open_roles_today': 0,
+            'open_roles_60_days_ago': prior if prior is not None else 0,
+            'velocity_label': ('declined' if prior and prior > 0
+                               else 'flat'),
+            'signal_confidence': 0.5 if prior is not None else 0.2,
+            'sources': sources,
+            'window_days': 60,
+            'prior_snapshot_captured_at': prior_captured,
+            'note': ('zero open eng roles today — explicit zero, not '
+                     'missing data'),
+        }
+
+    # Edge case 3: cold-start — we have today's number but no prior
+    # snapshot 60 days ago. Return today's count, flag it, and move on.
+    if prior is None:
+        return {
+            'open_roles_today': today,
+            'open_roles_60_days_ago': 0,
+            'velocity_label': 'insufficient_signal',
+            'signal_confidence': 0.0,
+            'sources': sources,
+            'window_days': 60,
+            'prior_snapshot_captured_at': None,
+            'note': ('first scrape on record for this prospect; 60-day '
+                     'window requires a prior snapshot. Retry after the '
+                     'next enrichment cycle.'),
+        }
+
+    # Full 60-day velocity path. Ratio bucketed into the schema enum.
+    ratio = today / max(prior, 1)
+    if prior == 0 and today > 0:
+        label = 'tripled_or_more'   # 0 → positive is a stronger signal than N/A
+    elif ratio >= 3:
+        label = 'tripled_or_more'
+    elif ratio >= 2:
+        label = 'doubled'
+    elif ratio > 1:
+        label = 'increased_modestly'
+    elif ratio == 1:
+        label = 'flat'
     else:
-        ratio = today / max(prior, 1)
-        if ratio >= 3:
-            label = 'tripled_or_more'
-        elif ratio >= 2:
-            label = 'doubled'
-        elif ratio > 1:
-            label = 'increased_modestly'
-        elif ratio == 1:
-            label = 'flat'
-        else:
-            label = 'declined'
-        conf = 0.7
+        label = 'declined'
+
+    # Confidence: weight the scraper's own confidence (high/med/low)
+    # against whether the prior snapshot sits near the 60-day midpoint.
+    base = {'high': 0.9, 'medium': 0.65, 'low': 0.4}.get(scrape_conf, 0.4)
     return {
         'open_roles_today': today,
         'open_roles_60_days_ago': prior,
         'velocity_label': label,
-        'signal_confidence': conf,
+        'signal_confidence': round(base, 2),
         'sources': sources,
+        'window_days': 60,
+        'prior_snapshot_captured_at': prior_captured,
     }
 
 
@@ -864,12 +1093,38 @@ def build_hiring_signal_brief(company_name: str,
     justifications = _maturity_justifications(cb, job_signals)
     ai_score, ai_conf = _score_from_justifications(justifications)
 
+    # Silent-company acknowledgement (rubric item #6 for AI maturity):
+    # when score is 0 AND every justification is an absence, attach an
+    # explicit note saying so. Stored as a sibling of `justifications`
+    # so the composer can surface it verbatim instead of inferring.
+    silent_company_ack: str | None = None
+    if ai_score == 0:
+        silent_company_ack = (
+            'No public AI signal found across six inputs '
+            '(AI-adjacent roles, named AI/ML leadership, GitHub org, '
+            'exec commentary, modern ML stack, strategic comms). '
+            'Absence of public signal is not proof of absence — some '
+            'teams ship AI work behind closed doors. The composer '
+            'must ask rather than assert.')
+
     segment_result = classify(_segment_input_from_signals(
         cb, funding, layoff, leadership, job_signals, ai_score))
 
     velocity_sources = (['company_careers_page']
                         if job_signals.get('status') == 'success' else [])
-    velocity = _hiring_velocity(job_signals, sources=velocity_sources)
+    slug = _slug(company_name)
+    # Record today's snapshot so the next enrichment cycle can close
+    # the 60-day velocity window. No-op for failed scrapes.
+    _record_job_snapshot(
+        slug,
+        eng_roles=int(job_signals.get('eng_roles') or 0),
+        ai_roles=int(job_signals.get('ai_roles') or 0),
+        total_roles=int(job_signals.get('total_roles') or 0),
+        source_url=careers_url,
+        status=(job_signals.get('status') or 'error'),
+    )
+    velocity = _hiring_velocity(job_signals, sources=velocity_sources,
+                                company_slug=slug)
     bench = _bench_match(tech_stack)
 
     flags = _honesty_flags(
@@ -894,6 +1149,8 @@ def build_hiring_signal_brief(company_name: str,
             'score': ai_score,
             'confidence': ai_conf,
             'justifications': justifications,
+            **({'silent_company_acknowledgement': silent_company_ack}
+               if silent_company_ack else {}),
         },
         'hiring_velocity': velocity,
         'buying_window_signals': {

@@ -221,3 +221,91 @@ python eval/tenacious_holdout.py --stat-test V3 V0 --metric contamination_rate
 
 Dev-tier target (Days 1–4): < **$4** LLM spend via OpenRouter.
 Week target: < **$20** total.
+
+## Handoff notes — known limitations and next steps
+
+Inheritor: the shortest path from cloning to a live demo is `pip install -r
+agent/requirements.txt` + `python -m playwright install chromium` + fill in
+`.env`. The items below are the concrete rough edges a successor will hit
+in roughly the order they will hit them.
+
+### Known limitations
+
+1. **60-day job-post history is cold-start on first run.** The velocity
+   window (`agent/enrichment.py::_hiring_velocity`) reads a per-prospect
+   snapshot store at `data/job_history/<slug>.json`. A prospect scraped
+   for the very first time has `velocity_label=insufficient_signal`
+   until a second scrape ≥45 days later closes the window. Fix: run a
+   nightly scrape sweep so the history accumulates before any prospect
+   is pitched.
+2. **Playwright live crawl requires `chromium` on disk.** `pip install`
+   alone does not download the browser; run `python -m playwright
+   install chromium` after `pip install`. Without it, `scrape_job_posts`
+   returns `status=error` and every brief carries
+   `honesty_flags=["weak_hiring_velocity_signal"]`.
+3. **GitHub-org activity signal is stubbed.** `agent/enrichment.py::
+   _maturity_justifications` emits a justification with
+   `signal=github_org_activity, status='not wired'`. The scoring
+   function treats this correctly (contributes nothing) but a
+   successor wiring it up should: (a) map CB `linkedin_url` → inferred
+   GitHub org slug, (b) call `GET /orgs/<slug>/repos?sort=pushed` with a
+   `GITHUB_TOKEN`, (c) count repos with `pushed_at` inside the last 90
+   days + `language` ∈ {Python, Jupyter}.
+4. **Press / investor-letter scrape is stubbed.** `executive_commentary`
+   and `strategic_communications` are currently inferred from
+   Crunchbase description text. A successor should add a lightweight
+   scrape of `company.com/press`, `company.com/blog`, and RSS where
+   available, keyed on AI-language token matches.
+5. **Gap brief abstains on most random Crunchbase rows.** Not a bug —
+   `data/briefs/competitor_gap_brief_*.abstain.json` is the honesty
+   posture when the peer pool has <5 rows with valid headcount_band.
+   `_cheap_competitor_brief` in `agent/enrichment.py` is the peer
+   pipeline; add an active peer-search (CB industry filter + min
+   employees) to raise coverage.
+6. **HubSpot custom properties must exist in the portal.** The router
+   writes `tenacious_channel_state`, `tenacious_status`,
+   `sms_unsubscribed`, `email_unsubscribed`, `warm_channel_open`,
+   `calcom_booking_uid`, `last_email_sent_at`, `last_email_reply_at`,
+   `last_sms_inbound_at`, `meeting_url`, `opt_out_channel`,
+   `opt_out_reason`. The REST fallback retries once without unknown
+   properties (see `agent/hubspot_handler.py::_upsert_via_rest`) but
+   audit notes become the primary evidence until a portal admin adds
+   the properties.
+7. **Cal.com booking URL is an env var, not live-linked.** Set
+   `CALCOM_BOOKING_URL` in `.env`; the default placeholder
+   (`https://cal.com/tenacious/discovery-call`) is not a real page.
+8. **τ²-Bench ran 1 trial at submission time.** Guide asks for 5; CI
+   width 0.19 exceeds the 0.15 target. Re-run `python
+   eval/run_baseline.py` 4 more times to tighten.
+
+### Next steps (in inheritance order)
+
+1. **First day**: populate `.env` from `.env.example`, run `python
+   agent/check_integrations.py` (must print 4/4 PASS), then run
+   `python -m playwright install chromium`.
+2. **First week**: schedule a nightly cron that invokes
+   `build_hiring_signal_brief` for the active prospect list, so the
+   60-day velocity window starts accumulating.
+3. **Second week**: wire the GitHub-org signal (item 3 above) and
+   press-scrape signal (item 4). Both go into
+   `_maturity_justifications` — same shape, just replace the "not
+   wired" entries.
+4. **Third week**: port the HubSpot property definitions into a
+   migration script (`scripts/provision_hubspot_properties.py`) so a
+   fresh portal can be bootstrapped without hand-clicking the UI.
+5. **Ongoing**: fund alerts on OpenRouter spend and Langfuse trace
+   volume — the dev-tier budget gets absorbed by a single runaway
+   scrape loop if left unattended.
+
+### Module ownership map
+
+| Module | Owns | Don't touch without reading |
+|---|---|---|
+| `agent/channel_router.py` | Conversation state, HubSpot lifecycle writes, Cal.com link issuance | `_ALLOWED_TRANSITIONS` — changing it silently opens cold-SMS paths |
+| `agent/enrichment.py` | Schema-compliant briefs, job-history store, silent-company acknowledgement | `_score_from_justifications` — the weighting is calibrated against 20 hand-checked CB rows |
+| `agent/icp_classifier.py` | 5-rule segment precedence | `classify()` — rule order encodes policy, not preference |
+| `agent/hubspot_handler.py` | MCP-first, REST-fallback contact + note writes | `_with_draft` — removing the draft stamp is a policy Rule 6 violation |
+| `agent/email_handler.py` + `sms_handler.py` + `calendar_handler.py` | Provider-specific wire protocol + structured errors | Webhook payload parsing — providers reshape payloads without notice |
+| `eval/run_baseline.py` | τ²-Bench harness + Langfuse hookup | The LiteLLM patches in `_patch_litellm_cost()` — removing them re-breaks cost accounting |
+| `probes/run_probes.py` | 31-probe sweep + trigger-rate ledger | Probe IDs are referenced in the report; renumbering invalidates citations |
+
