@@ -1,0 +1,120 @@
+
+>>> V0_day1_baseline  (live LLM)
+  [PASS] HO-01  Series A -- 7 open eng roles, $18M raise 45d ago, AI mat
+  [PASS] HO-02  Series A -- 3 open roles (below 5 threshold), weak veloc
+  [PASS] HO-03  Series A -- dual weak signal: 2 open roles, no AI presen
+  [PASS] HO-04  Series B -- 6 open eng roles, $27M raise, AI maturity 3
+  [PASS] HO-05  Series A -- 4 open roles, tech stack inferred from Built
+  [PASS] HO-06  Seg2 -- 5 eng roles open, 60d since RIF, delivery preser
+  [PASS] HO-07  Seg2 -- 2 open roles post-RIF, velocity unclear
+  [FAIL] HO-08  Seg2 -- layoff precedes Series B; must use cost-discipli
+  [PASS] HO-09  Seg2 -- 3 eng roles, RIF 90d ago, no AI maturity
+  [PASS] HO-10  New CTO 30d ago -- 4 eng roles open, 150-person company
+  [PASS] HO-11  New CTO -- 2 open roles, tech stack inferred from BuiltW
+  [PASS] HO-12  New VP Eng 20d ago -- 5 open roles, AI maturity 2
+  [PASS] HO-13  New CTO -- only 1 open role, thin hiring signal
+  [PASS] HO-14  Specialized ML -- 6 ML roles repeated 60+d, AI maturity 
+  [PASS] HO-15  Spec cap -- 3 ML roles, AI maturity 2 (borderline)
+  [PASS] HO-16  Spec cap -- 7 ML roles, stack inferred from BuiltWith
+  [PASS] HO-17  No clear segment -- 1 open role, no qualifying events
+  [PASS] HO-18  Fully insufficient signal -- 0 open roles, no events
+  [PASS] HO-19  Seg2 -- sparse enrichment, 3 roles, RIF 75d ago
+  [PASS] HO-20  Seg1 -- bench gap detected: required stack not currently
+    pass@1=95.00%  CI=[0.764, 0.991]  contamination=5.00%  cost=$0.0235
+
+>>> V1_phrasing_only  (live LLM)
+  [PASS] HO-01  Series A -- 7 open eng roles, $18M raise 45d ago, AI mat
+  [PASS] HO-02  Series A -- 3 open roles (below 5 threshold), weak veloc
+  [PASS] HO-03  Series A -- dual weak signal: 2 open roles, no AI presen
+  [PASS] HO-04  Series B -- 6 open eng roles, $27M raise, AI maturity 3
+  [PASS] HO-05  Series A -- 4 open roles, tech stack inferred from Built
+  [PASS] HO-06  Seg2 -- 5 eng roles open, 60d since RIF, delivery preser
+  [PASS] HO-07  Seg2 -- 2 open roles post-RIF, velocity unclear
+  [PASS] HO-08  Seg2 -- layoff precedes Series B; must use cost-discipli
+  [PASS] HO-09  Seg2 -- 3 eng roles, RIF 90d ago, no AI maturity
+  [PASS] HO-10  New CTO 30d ago -- 4 eng roles open, 150-person company
+  [PASS] HO-11  New CTO -- 2 open roles, tech stack inferred from BuiltW
+  [PASS] HO-12  New VP Eng 20d ago -- 5 open roles, AI maturity 2
+  [PASS] HO-13  New CTO -- only 1 open role, thin hiring signal
+  [PASS] HO-14  Specialized ML -- 6 ML roles repeated 60+d, AI maturity 
+  [PASS] HO-15  Spec cap -- 3 ML roles, AI maturity 2 (borderline)
+  [PASS] HO-16  Spec cap -- 7 ML roles, stack inferred from BuiltWith
+  [PASS] HO-17  No clear segment -- 1 open role, no qualifying events
+  [PASS] HO-18  Fully insufficient signal -- 0 open roles, no events
+  [PASS] HO-19  Seg2 -- sparse enrichment, 3 roles, RIF 75d ago
+  [PASS] HO-20  Seg1 -- bench gap detected: required stack not currently
+    pass@1=100.00%  CI=[0.839, 1]  contamination=0.00%  cost=$0.0241
+
+>>> V2_tone_judge_only  (live LLM)
+  [PASS] HO-01  Series A -- 7 open eng roles, $18M raise 45d ago, AI mat
+  [PASS] HO-02  Series A -- 3 open roles (below 5 threshold), weak veloc
+  [PASS] HO-03  Series A -- dual weak signal: 2 open roles, no AI presen
+  [FAIL] HO-04  Series B -- 6 open eng roles, $27M raise, AI maturity 3
+  [PASS] HO-05  Series A -- 4 open roles, tech stack inferred from Built
+  [PASS] HO-06  Seg2 -- 5 eng roles open, 60d since RIF, delivery preser
+  [PASS] HO-07  Seg2 -- 2 open roles post-RIF, velocity unclear
+  [PASS] HO-08  Seg2 -- layoff precedes Series B; must use cost-discipli
+  [PASS] HO-09  Seg2 -- 3 eng roles, RIF 90d ago, no AI maturity
+  [PASS] HO-10  New CTO 30d ago -- 4 eng roles open, 150-person company
+  [PASS] HO-11  New CTO -- 2 open roles, tech stack inferred from BuiltW
+  [PASS] HO-12  New VP Eng 20d ago -- 5 open roles, AI maturity 2
+  [PASS] HO-13  New CTO -- only 1 open role, thin hiring signal
+  [PASS] HO-14  Specialized ML -- 6 ML roles repeated 60+d, AI maturity 
+  [PASS] HO-15  Spec cap -- 3 ML roles, AI maturity 2 (borderline)
+  [PASS] HO-16  Spec cap -- 7 ML roles, stack inferred from BuiltWith
+  [PASS] HO-17  No clear segment -- 1 open role, no qualifying events
+  [PASS] HO-18  Fully insufficient signal -- 0 open roles, no events
+  [PASS] HO-19  Seg2 -- sparse enrichment, 3 roles, RIF 75d ago
+  [PASS] HO-20  Seg1 -- bench gap detected: required stack not currently
+    pass@1=95.00%  CI=[0.764, 0.991]  contamination=5.00%  cost=$0.0270
+
+>>> V3_combined  (live LLM)
+  [PASS] HO-01  Series A -- 7 open eng roles, $18M raise 45d ago, AI mat
+  [PASS] HO-02  Series A -- 3 open roles (below 5 threshold), weak veloc
+  [PASS] HO-03  Series A -- dual weak signal: 2 open roles, no AI presen
+  [PASS] HO-04  Series B -- 6 open eng roles, $27M raise, AI maturity 3
+  [PASS] HO-05  Series A -- 4 open roles, tech stack inferred from Built
+  [PASS] HO-06  Seg2 -- 5 eng roles open, 60d since RIF, delivery preser
+  [PASS] HO-07  Seg2 -- 2 open roles post-RIF, velocity unclear
+  [PASS] HO-08  Seg2 -- layoff precedes Series B; must use cost-discipli
+  [PASS] HO-09  Seg2 -- 3 eng roles, RIF 90d ago, no AI maturity
+  [PASS] HO-10  New CTO 30d ago -- 4 eng roles open, 150-person company
+  [PASS] HO-11  New CTO -- 2 open roles, tech stack inferred from BuiltW
+  [PASS] HO-12  New VP Eng 20d ago -- 5 open roles, AI maturity 2
+  [PASS] HO-13  New CTO -- only 1 open role, thin hiring signal
+  [PASS] HO-14  Specialized ML -- 6 ML roles repeated 60+d, AI maturity 
+  [PASS] HO-15  Spec cap -- 3 ML roles, AI maturity 2 (borderline)
+  [PASS] HO-16  Spec cap -- 7 ML roles, stack inferred from BuiltWith
+  [PASS] HO-17  No clear segment -- 1 open role, no qualifying events
+  [PASS] HO-18  Fully insufficient signal -- 0 open roles, no events
+  [PASS] HO-19  Seg2 -- sparse enrichment, 3 roles, RIF 75d ago
+  [PASS] HO-20  Seg1 -- bench gap detected: required stack not currently
+    pass@1=100.00%  CI=[0.839, 1]  contamination=0.00%  cost=$0.0264
+
+>>> AutoAgent_baseline  (live LLM)
+  [PASS] HO-01  Series A -- 7 open eng roles, $18M raise 45d ago, AI mat
+  [PASS] HO-02  Series A -- 3 open roles (below 5 threshold), weak veloc
+  [PASS] HO-03  Series A -- dual weak signal: 2 open roles, no AI presen
+  [PASS] HO-04  Series B -- 6 open eng roles, $27M raise, AI maturity 3
+  [PASS] HO-05  Series A -- 4 open roles, tech stack inferred from Built
+  [PASS] HO-06  Seg2 -- 5 eng roles open, 60d since RIF, delivery preser
+  [PASS] HO-07  Seg2 -- 2 open roles post-RIF, velocity unclear
+  [PASS] HO-08  Seg2 -- layoff precedes Series B; must use cost-discipli
+  [PASS] HO-09  Seg2 -- 3 eng roles, RIF 90d ago, no AI maturity
+  [PASS] HO-10  New CTO 30d ago -- 4 eng roles open, 150-person company
+  [PASS] HO-11  New CTO -- 2 open roles, tech stack inferred from BuiltW
+  [PASS] HO-12  New VP Eng 20d ago -- 5 open roles, AI maturity 2
+  [PASS] HO-13  New CTO -- only 1 open role, thin hiring signal
+  [PASS] HO-14  Specialized ML -- 6 ML roles repeated 60+d, AI maturity 
+  [PASS] HO-15  Spec cap -- 3 ML roles, AI maturity 2 (borderline)
+  [PASS] HO-16  Spec cap -- 7 ML roles, stack inferred from BuiltWith
+  [PASS] HO-17  No clear segment -- 1 open role, no qualifying events
+  [PASS] HO-18  Fully insufficient signal -- 0 open roles, no events
+  [PASS] HO-19  Seg2 -- sparse enrichment, 3 roles, RIF 75d ago
+  [PASS] HO-20  Seg1 -- bench gap detected: required stack not currently
+    pass@1=100.00%  CI=[0.839, 1]  contamination=0.00%  cost=$0.0046
+
+Wrote 100 traces -> C:\Users\reus\Desktop\trp\conversion-engine\eval\held_out_traces.jsonl
+Wrote results -> C:\Users\reus\Desktop\trp\conversion-engine\eval\ablation_results.json
+
+Delta A: pass@1 +5.00%  contamination -5.00%  z=-1.01  p=0.1556  not significant
