@@ -1,0 +1,238 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tenacious-training.dev/schemas/hiring_signal_brief.schema.json",
+  "title": "Hiring Signal Brief",
+  "description": "The grounded research artifact produced by the enrichment pipeline before the agent composes outreach. Every claim in the outreach email must map to a field in this brief. Fields with low confidence must trigger softer phrasing in the agent's output.",
+  "type": "object",
+  "required": [
+    "prospect_domain",
+    "prospect_name",
+    "generated_at",
+    "primary_segment_match",
+    "segment_confidence",
+    "ai_maturity",
+    "hiring_velocity",
+    "buying_window_signals",
+    "data_sources_checked"
+  ],
+  "properties": {
+    "prospect_domain": {
+      "type": "string",
+      "description": "Canonical domain of the prospect company, e.g. 'acme.com'. Used as the HubSpot and Langfuse trace key."
+    },
+    "prospect_name": {
+      "type": "string",
+      "description": "Legal or operating name of the company as it appears in Crunchbase."
+    },
+    "generated_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "UTC timestamp of brief generation. Must be within 7 days of any outreach that cites the brief."
+    },
+    "primary_segment_match": {
+      "type": "string",
+      "enum": [
+        "segment_1_series_a_b",
+        "segment_2_mid_market_restructure",
+        "segment_3_leadership_transition",
+        "segment_4_specialized_capability",
+        "abstain"
+      ],
+      "description": "Matched ICP segment per seed/icp_definition.md classification rules. 'abstain' when confidence < 0.6."
+    },
+    "segment_confidence": {
+      "type": "number",
+      "minimum": 0.0,
+      "maximum": 1.0,
+      "description": "Confidence in the segment match. Below 0.6 triggers abstention — a generic exploratory email instead of a segment-specific pitch."
+    },
+    "ai_maturity": {
+      "type": "object",
+      "required": ["score", "justifications"],
+      "properties": {
+        "score": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 3,
+          "description": "AI maturity score per seed/icp_definition.md. 0 = no signal, 3 = active AI function with named leadership and open roles."
+        },
+        "confidence": {
+          "type": "number",
+          "minimum": 0.0,
+          "maximum": 1.0,
+          "description": "Confidence in the score. Low confidence + high score triggers 'ask rather than assert' phrasing."
+        },
+        "justifications": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["signal", "status", "weight", "confidence"],
+            "properties": {
+              "signal": {
+                "type": "string",
+                "enum": [
+                  "ai_adjacent_open_roles",
+                  "named_ai_ml_leadership",
+                  "github_org_activity",
+                  "executive_commentary",
+                  "modern_data_ml_stack",
+                  "strategic_communications"
+                ]
+              },
+              "status": {
+                "type": "string",
+                "description": "Free-text description of what was found (or not found) for this signal."
+              },
+              "weight": {
+                "type": "string",
+                "enum": ["high", "medium", "low"],
+                "description": "Signal weight per the AI maturity scoring rubric."
+              },
+              "confidence": {
+                "type": "string",
+                "enum": ["high", "medium", "low"],
+                "description": "Confidence in this specific input."
+              },
+              "source_url": {
+                "type": "string",
+                "format": "uri",
+                "description": "The public URL that backs this justification. Optional when signal is an absence."
+              }
+            }
+          }
+        }
+      }
+    },
+    "hiring_velocity": {
+      "type": "object",
+      "required": ["open_roles_today", "open_roles_60_days_ago", "velocity_label", "signal_confidence"],
+      "properties": {
+        "open_roles_today": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "open_roles_60_days_ago": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "From the 60-day-prior snapshot of job-post scrape data."
+        },
+        "velocity_label": {
+          "type": "string",
+          "enum": ["tripled_or_more", "doubled", "increased_modestly", "flat", "declined", "insufficient_signal"],
+          "description": "Categorical label for the agent's language. 'insufficient_signal' forces the agent to ask rather than assert."
+        },
+        "signal_confidence": {
+          "type": "number",
+          "minimum": 0.0,
+          "maximum": 1.0
+        },
+        "sources": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": ["builtin", "wellfound", "linkedin_public", "company_careers_page"]
+          }
+        }
+      }
+    },
+    "buying_window_signals": {
+      "type": "object",
+      "description": "The three primary buying-window signals beyond hiring velocity.",
+      "properties": {
+        "funding_event": {
+          "type": "object",
+          "properties": {
+            "detected": { "type": "boolean" },
+            "stage": {
+              "type": "string",
+              "enum": ["seed", "series_a", "series_b", "series_c", "series_d_plus", "debt", "other", "none"]
+            },
+            "amount_usd": { "type": "integer" },
+            "closed_at": { "type": "string", "format": "date" },
+            "source_url": { "type": "string", "format": "uri" }
+          }
+        },
+        "layoff_event": {
+          "type": "object",
+          "properties": {
+            "detected": { "type": "boolean" },
+            "date": { "type": "string", "format": "date" },
+            "headcount_reduction": { "type": "integer" },
+            "percentage_cut": { "type": "number" },
+            "source_url": { "type": "string", "format": "uri" }
+          }
+        },
+        "leadership_change": {
+          "type": "object",
+          "properties": {
+            "detected": { "type": "boolean" },
+            "role": {
+              "type": "string",
+              "enum": ["cto", "vp_engineering", "cio", "chief_data_officer", "head_of_ai", "other", "none"]
+            },
+            "new_leader_name": { "type": "string" },
+            "started_at": { "type": "string", "format": "date" },
+            "source_url": { "type": "string", "format": "uri" }
+          }
+        }
+      }
+    },
+    "tech_stack": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Inferred public tech stack from BuiltWith / Wappalyzer / job-post signal. Used for bench-to-brief match."
+    },
+    "bench_to_brief_match": {
+      "type": "object",
+      "properties": {
+        "required_stacks": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "bench_available": {
+          "type": "boolean",
+          "description": "True only if every required stack has at least one available engineer in seed/bench_summary.json."
+        },
+        "gaps": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Stacks the prospect needs that the bench does not currently cover."
+        }
+      }
+    },
+    "data_sources_checked": {
+      "type": "array",
+      "description": "Record of every enrichment source attempted, including failures.",
+      "items": {
+        "type": "object",
+        "required": ["source", "status"],
+        "properties": {
+          "source": { "type": "string" },
+          "status": {
+            "type": "string",
+            "enum": ["success", "partial", "no_data", "error", "rate_limited"]
+          },
+          "error_message": { "type": "string" },
+          "fetched_at": { "type": "string", "format": "date-time" }
+        }
+      }
+    },
+    "honesty_flags": {
+      "type": "array",
+      "description": "Explicit flags the agent must respect when composing outreach.",
+      "items": {
+        "type": "string",
+        "enum": [
+          "weak_hiring_velocity_signal",
+          "weak_ai_maturity_signal",
+          "conflicting_segment_signals",
+          "layoff_overrides_funding",
+          "bench_gap_detected",
+          "tech_stack_inferred_not_confirmed"
+        ]
+      }
+    }
+  }
+}

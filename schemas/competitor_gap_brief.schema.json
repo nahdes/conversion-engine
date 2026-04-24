@@ -1,0 +1,148 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tenacious-training.dev/schemas/competitor_gap_brief.schema.json",
+  "title": "Competitor Gap Brief",
+  "description": "The sector-level research artifact that converts outreach from a vendor pitch into a research finding. Generated after the hiring signal brief. Every peer-company claim in the agent's outreach must map to a competitor entry in this brief with a public source URL.",
+  "type": "object",
+  "required": [
+    "prospect_domain",
+    "prospect_sector",
+    "generated_at",
+    "prospect_ai_maturity_score",
+    "sector_top_quartile_benchmark",
+    "competitors_analyzed",
+    "gap_findings"
+  ],
+  "properties": {
+    "prospect_domain": {
+      "type": "string",
+      "description": "Must match the domain in the corresponding hiring_signal_brief.json."
+    },
+    "prospect_sector": {
+      "type": "string",
+      "description": "Sector classification used to define peer group. Use the Crunchbase 'categories' field as the default, narrowed to a sub-niche where useful."
+    },
+    "prospect_sub_niche": {
+      "type": "string",
+      "description": "Optional finer-grained niche, e.g. 'AdTech SSP' rather than 'advertising technology'."
+    },
+    "generated_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "prospect_ai_maturity_score": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 3
+    },
+    "sector_top_quartile_benchmark": {
+      "type": "number",
+      "description": "Average AI maturity score of the top-quartile peer companies analyzed.",
+      "minimum": 0.0,
+      "maximum": 3.0
+    },
+    "competitors_analyzed": {
+      "type": "array",
+      "minItems": 5,
+      "maxItems": 10,
+      "description": "Five to ten peer companies scored on the same AI maturity rubric.",
+      "items": {
+        "type": "object",
+        "required": ["name", "domain", "ai_maturity_score", "ai_maturity_justification", "headcount_band"],
+        "properties": {
+          "name": { "type": "string" },
+          "domain": { "type": "string" },
+          "ai_maturity_score": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 3
+          },
+          "ai_maturity_justification": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "One line per signal input that contributed to the score."
+          },
+          "headcount_band": {
+            "type": "string",
+            "enum": ["15_to_80", "80_to_200", "200_to_500", "500_to_2000", "2000_plus"]
+          },
+          "top_quartile": {
+            "type": "boolean",
+            "description": "True if this competitor is in the top quartile of AI maturity within the sector."
+          },
+          "sources_checked": {
+            "type": "array",
+            "items": { "type": "string", "format": "uri" }
+          }
+        }
+      }
+    },
+    "gap_findings": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 3,
+      "description": "Two to three specific practices the top quartile shows public signal for that the prospect does not. Quality is graded on specificity — 'they use AI' is useless; 'three peers have opened named MLOps-platform-engineer roles in the last 60 days' is valuable.",
+      "items": {
+        "type": "object",
+        "required": ["practice", "peer_evidence", "prospect_state", "confidence"],
+        "properties": {
+          "practice": {
+            "type": "string",
+            "description": "The specific practice. Must be phrased as a verifiable fact, not an opinion."
+          },
+          "peer_evidence": {
+            "type": "array",
+            "minItems": 2,
+            "items": {
+              "type": "object",
+              "required": ["competitor_name", "evidence", "source_url"],
+              "properties": {
+                "competitor_name": { "type": "string" },
+                "evidence": { "type": "string" },
+                "source_url": { "type": "string", "format": "uri" }
+              }
+            }
+          },
+          "prospect_state": {
+            "type": "string",
+            "description": "What the prospect's public signal shows (or does not show) on this practice. Must be specific — 'no public signal of X' is acceptable, 'the prospect does not do X' without evidence is not."
+          },
+          "confidence": {
+            "type": "string",
+            "enum": ["high", "medium", "low"],
+            "description": "Confidence in the gap finding. Low confidence forces the agent's phrasing to 'ask' rather than 'assert'."
+          },
+          "segment_relevance": {
+            "type": "array",
+            "description": "Which ICP segments this gap finding is most relevant to.",
+            "items": {
+              "type": "string",
+              "enum": [
+                "segment_1_series_a_b",
+                "segment_2_mid_market_restructure",
+                "segment_3_leadership_transition",
+                "segment_4_specialized_capability"
+              ]
+            }
+          }
+        }
+      }
+    },
+    "suggested_pitch_shift": {
+      "type": "string",
+      "description": "Brief prompt-engineering note for the outreach composer — e.g. 'Shift from generic talent pitch to specialized capability gap: stand up your first MLOps function with a dedicated squad.' Used as a soft guide, not a hard constraint."
+    },
+    "gap_quality_self_check": {
+      "type": "object",
+      "description": "The brief's honest assessment of its own reliability. The agent must respect these flags when composing outreach.",
+      "properties": {
+        "all_peer_evidence_has_source_url": { "type": "boolean" },
+        "at_least_one_gap_high_confidence": { "type": "boolean" },
+        "prospect_silent_but_sophisticated_risk": {
+          "type": "boolean",
+          "description": "True if the prospect shows some signal of internal sophistication (e.g., recent technical blog posts) despite low public AI-maturity signal. Indicates a false-negative risk and softens gap language."
+        }
+      }
+    }
+  }
+}

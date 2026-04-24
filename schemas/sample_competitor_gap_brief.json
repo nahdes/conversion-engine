@@ -1,0 +1,191 @@
+{
+  "prospect_domain": "orrin-labs.example",
+  "prospect_sector": "Business Intelligence / Analytics",
+  "prospect_sub_niche": "AI-augmented BI for mid-market",
+  "generated_at": "2026-04-22T08:18:00Z",
+  "prospect_ai_maturity_score": 2,
+  "sector_top_quartile_benchmark": 2.75,
+  "competitors_analyzed": [
+    {
+      "name": "Northview Analytics",
+      "domain": "northview-analytics.example",
+      "ai_maturity_score": 3,
+      "ai_maturity_justification": [
+        "Named VP of AI on public team page since Q4 2025",
+        "Five AI-adjacent open roles including MLOps Platform Engineer",
+        "CEO keynote at sector conference explicitly named agentic analytics as 2026 priority"
+      ],
+      "headcount_band": "80_to_200",
+      "top_quartile": true,
+      "sources_checked": [
+        "https://northview-analytics.example/team",
+        "https://builtin.com/company/northview-analytics/jobs"
+      ]
+    },
+    {
+      "name": "Axiom Data Works",
+      "domain": "axiom-dataworks.example",
+      "ai_maturity_score": 3,
+      "ai_maturity_justification": [
+        "Head of Applied AI hired November 2025",
+        "Two MLOps Engineer roles open 45+ days",
+        "Annual investor letter Q4 2025 positions AI platform as primary product differentiator"
+      ],
+      "headcount_band": "200_to_500",
+      "top_quartile": true,
+      "sources_checked": [
+        "https://axiom-dataworks.example/about",
+        "https://axiom-dataworks.example/investors/2025-letter"
+      ]
+    },
+    {
+      "name": "Brightfold",
+      "domain": "brightfold.example",
+      "ai_maturity_score": 2,
+      "ai_maturity_justification": [
+        "ML Engineer and Data Platform Engineer roles open",
+        "CTO podcast appearance Jan 2026 discussing agentic workflows",
+        "No named Head of AI; CTO retains AI remit"
+      ],
+      "headcount_band": "80_to_200",
+      "top_quartile": false,
+      "sources_checked": [
+        "https://wellfound.com/company/brightfold/jobs"
+      ]
+    },
+    {
+      "name": "Meridian BI",
+      "domain": "meridian-bi.example",
+      "ai_maturity_score": 2,
+      "ai_maturity_justification": [
+        "Two open AI-adjacent roles (Senior ML, Data Platform)",
+        "Public GitHub shows recent commits on an evaluation-framework repo",
+        "No named AI leadership role"
+      ],
+      "headcount_band": "80_to_200",
+      "top_quartile": false,
+      "sources_checked": [
+        "https://github.com/meridian-bi"
+      ]
+    },
+    {
+      "name": "Orrin Labs (prospect)",
+      "domain": "orrin-labs.example",
+      "ai_maturity_score": 2,
+      "ai_maturity_justification": [
+        "Two Data Platform Engineer roles and one ML Engineer role open",
+        "No named AI/ML leadership",
+        "CEO blog post names AI as 2026 priority"
+      ],
+      "headcount_band": "15_to_80",
+      "top_quartile": false,
+      "sources_checked": [
+        "https://builtin.com/company/orrin-labs/jobs"
+      ]
+    },
+    {
+      "name": "Pulsar Insights",
+      "domain": "pulsar-insights.example",
+      "ai_maturity_score": 3,
+      "ai_maturity_justification": [
+        "Chief Scientist hired December 2025",
+        "Three ML-platform-adjacent roles open",
+        "Published technical blog post on evaluation framework, March 2026"
+      ],
+      "headcount_band": "80_to_200",
+      "top_quartile": true,
+      "sources_checked": [
+        "https://pulsar-insights.example/blog/eval-framework-2026"
+      ]
+    },
+    {
+      "name": "Candor Analytics",
+      "domain": "candor-analytics.example",
+      "ai_maturity_score": 1,
+      "ai_maturity_justification": [
+        "No AI-adjacent open roles detected",
+        "No named AI leadership",
+        "Stack includes dbt and Snowflake but no ML-platform tooling signal"
+      ],
+      "headcount_band": "15_to_80",
+      "top_quartile": false,
+      "sources_checked": [
+        "https://candor-analytics.example/careers"
+      ]
+    }
+  ],
+  "gap_findings": [
+    {
+      "practice": "Dedicated AI/ML leadership role at the executive level",
+      "peer_evidence": [
+        {
+          "competitor_name": "Northview Analytics",
+          "evidence": "VP of AI named on public team page since Q4 2025.",
+          "source_url": "https://northview-analytics.example/team"
+        },
+        {
+          "competitor_name": "Axiom Data Works",
+          "evidence": "Head of Applied AI hired November 2025 per LinkedIn.",
+          "source_url": "https://www.linkedin.com/in/axiom-ai-head"
+        },
+        {
+          "competitor_name": "Pulsar Insights",
+          "evidence": "Chief Scientist hired December 2025.",
+          "source_url": "https://pulsar-insights.example/team"
+        }
+      ],
+      "prospect_state": "Orrin Labs has no named AI/ML leadership role. CTO holds a combined infrastructure-and-data remit per the public team page.",
+      "confidence": "high",
+      "segment_relevance": [
+        "segment_1_series_a_b",
+        "segment_4_specialized_capability"
+      ]
+    },
+    {
+      "practice": "Dedicated MLOps / ML-platform engineering function (roles open 45+ days suggests active buildout)",
+      "peer_evidence": [
+        {
+          "competitor_name": "Northview Analytics",
+          "evidence": "MLOps Platform Engineer role open and actively promoted.",
+          "source_url": "https://builtin.com/company/northview-analytics/jobs"
+        },
+        {
+          "competitor_name": "Axiom Data Works",
+          "evidence": "Two MLOps Engineer roles open 45+ days.",
+          "source_url": "https://builtin.com/company/axiom-dataworks/jobs"
+        }
+      ],
+      "prospect_state": "Orrin Labs has Data Platform Engineer roles open but no explicitly MLOps-labeled roles. The distinction may be deliberate (integrated in data-platform role) or a gap.",
+      "confidence": "medium",
+      "segment_relevance": [
+        "segment_4_specialized_capability"
+      ]
+    },
+    {
+      "practice": "Public technical commentary on agentic or evaluation-framework work",
+      "peer_evidence": [
+        {
+          "competitor_name": "Brightfold",
+          "evidence": "CTO podcast January 2026 discussing agentic workflows.",
+          "source_url": "https://pod.example/brightfold-cto-ep-47"
+        },
+        {
+          "competitor_name": "Pulsar Insights",
+          "evidence": "Technical blog post on evaluation framework, March 2026.",
+          "source_url": "https://pulsar-insights.example/blog/eval-framework-2026"
+        }
+      ],
+      "prospect_state": "Orrin Labs blog mentions AI as a priority but has no technical depth posts on agentic workflows or evaluation in the last 12 months.",
+      "confidence": "medium",
+      "segment_relevance": [
+        "segment_1_series_a_b"
+      ]
+    }
+  ],
+  "suggested_pitch_shift": "Lead with the dedicated AI leadership gap (high confidence, two strong peer examples). Frame as a question — 'is the AI leadership role still being scoped, or is it deliberately distributed across the CTO remit?' — not an assertion of a gap. Avoid the MLOps gap in the first email; it is medium confidence and the prospect may have the function inside their Data Platform Engineer JD.",
+  "gap_quality_self_check": {
+    "all_peer_evidence_has_source_url": true,
+    "at_least_one_gap_high_confidence": true,
+    "prospect_silent_but_sophisticated_risk": false
+  }
+}

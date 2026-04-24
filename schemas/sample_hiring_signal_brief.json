@@ -1,0 +1,125 @@
+{
+  "prospect_domain": "orrin-labs.example",
+  "prospect_name": "Orrin Labs Inc.",
+  "generated_at": "2026-04-22T08:15:00Z",
+  "primary_segment_match": "segment_1_series_a_b",
+  "segment_confidence": 0.82,
+  "ai_maturity": {
+    "score": 2,
+    "confidence": 0.7,
+    "justifications": [
+      {
+        "signal": "ai_adjacent_open_roles",
+        "status": "Two Data Platform Engineer roles and one ML Engineer role open on BuiltIn. 3 of 11 total engineering openings are AI-adjacent (27%).",
+        "weight": "high",
+        "confidence": "high",
+        "source_url": "https://builtin.com/company/orrin-labs/jobs"
+      },
+      {
+        "signal": "named_ai_ml_leadership",
+        "status": "No public Head of AI, VP Data, or Chief Scientist on the team page. CTO holds a combined infrastructure-and-data remit.",
+        "weight": "high",
+        "confidence": "high",
+        "source_url": "https://orrin-labs.example/team"
+      },
+      {
+        "signal": "executive_commentary",
+        "status": "CEO blog post Feb 2026 mentions 'AI-powered insights' as a 2026 priority. No keynote or podcast appearances on AI strategy in the last 12 months.",
+        "weight": "medium",
+        "confidence": "medium",
+        "source_url": "https://orrin-labs.example/blog/2026-roadmap"
+      },
+      {
+        "signal": "modern_data_ml_stack",
+        "status": "BuiltWith reports dbt and Snowflake in use. No Databricks, no Weights and Biases, no vLLM. Stack is modern-data but not ML-platform-modern.",
+        "weight": "low",
+        "confidence": "high",
+        "source_url": "https://builtwith.com/orrin-labs.example"
+      },
+      {
+        "signal": "github_org_activity",
+        "status": "Public GitHub org has 4 repos, all non-AI (developer tooling). Absence of AI repos is not proof of absence — AI work may be in private repos.",
+        "weight": "medium",
+        "confidence": "medium",
+        "source_url": "https://github.com/orrin-labs"
+      }
+    ]
+  },
+  "hiring_velocity": {
+    "open_roles_today": 11,
+    "open_roles_60_days_ago": 4,
+    "velocity_label": "doubled",
+    "signal_confidence": 0.85,
+    "sources": ["builtin", "wellfound", "company_careers_page"]
+  },
+  "buying_window_signals": {
+    "funding_event": {
+      "detected": true,
+      "stage": "series_b",
+      "amount_usd": 14000000,
+      "closed_at": "2026-02-12",
+      "source_url": "https://www.crunchbase.com/funding_round/orrin-labs-series-b"
+    },
+    "layoff_event": {
+      "detected": false
+    },
+    "leadership_change": {
+      "detected": false
+    }
+  },
+  "tech_stack": [
+    "Python",
+    "PostgreSQL",
+    "dbt",
+    "Snowflake",
+    "AWS",
+    "React",
+    "TypeScript"
+  ],
+  "bench_to_brief_match": {
+    "required_stacks": ["python", "data"],
+    "bench_available": true,
+    "gaps": []
+  },
+  "data_sources_checked": [
+    {
+      "source": "crunchbase_odm",
+      "status": "success",
+      "fetched_at": "2026-04-22T08:12:15Z"
+    },
+    {
+      "source": "layoffs_fyi",
+      "status": "success",
+      "fetched_at": "2026-04-22T08:12:30Z"
+    },
+    {
+      "source": "builtin_jobs",
+      "status": "success",
+      "fetched_at": "2026-04-22T08:13:04Z"
+    },
+    {
+      "source": "wellfound_jobs",
+      "status": "success",
+      "fetched_at": "2026-04-22T08:13:22Z"
+    },
+    {
+      "source": "linkedin_public_leadership",
+      "status": "partial",
+      "error_message": "Rate limit hit on third pagination call; first two pages parsed successfully.",
+      "fetched_at": "2026-04-22T08:13:40Z"
+    },
+    {
+      "source": "builtwith",
+      "status": "success",
+      "fetched_at": "2026-04-22T08:14:12Z"
+    },
+    {
+      "source": "github_public_org",
+      "status": "success",
+      "fetched_at": "2026-04-22T08:14:35Z"
+    }
+  ],
+  "honesty_flags": [
+    "tech_stack_inferred_not_confirmed"
+  ]
+}
