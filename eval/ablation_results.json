@@ -1,0 +1,127 @@
+{
+  "_meta": {
+    "description": "Act IV ablation results -- signal-confidence-aware email composition",
+    "eval_date": "2026-04-24",
+    "harness": "eval/tenacious_holdout.py",
+    "slice": "sealed_held_out_20_tasks",
+    "metric_primary": "pass_at_1",
+    "metric_secondary": "contamination_rate",
+    "stat_test": "one-sided proportion z-test, H0: contamination(V3) >= contamination(V0)",
+    "significance_threshold": 0.05,
+    "dry_run": false,
+    "autoagent_note": "AutoAgent baseline uses a prompt-optimised system prompt without honesty_flag wiring. Full GEPA/AutoAgent installation was time-boxed per the risk register; this condition simulates the flag-unaware behaviour documented in Hu et al. 2024."
+  },
+  "day1_tau2_reference": {
+    "source": "eval/score_log.json (tau2-Bench retail dev slice, 5 trials x 30 tasks = 150 simulations)",
+    "pass_at_1": 0.7267,
+    "ci_95": [
+      0.6504,
+      0.7917
+    ],
+    "avg_cost_usd": 0.0199,
+    "total_cost_usd": 2.985,
+    "p50_latency_s": 105.9521,
+    "p95_latency_s": 551.6491,
+    "git_commit": "d11a97072c49d093f7b5a3e4fe9da95b490d43ba",
+    "infra_error_count": 0,
+    "note": "tau2-Bench pass@1 measures agentic task-completion on the retail benchmark. Contamination_rate measures signal-grounding compliance. The two metrics are complementary, not substitutes."
+  },
+  "conditions": {
+    "V0_day1_baseline": {
+      "condition": "V0_day1_baseline",
+      "n_tasks": 20,
+      "passed": 19,
+      "pass_at_1": 0.95,
+      "wilson_ci_95": [
+        0.764,
+        0.991
+      ],
+      "contamination_rate": 0.05,
+      "cost_per_task_usd": 0.00117,
+      "total_cost_usd": 0.0235,
+      "latency_p50_s": 7.572,
+      "latency_p95_s": 30.683,
+      "errors": 0
+    },
+    "V1_phrasing_only": {
+      "condition": "V1_phrasing_only",
+      "n_tasks": 20,
+      "passed": 20,
+      "pass_at_1": 1.0,
+      "wilson_ci_95": [
+        0.839,
+        1
+      ],
+      "contamination_rate": 0.0,
+      "cost_per_task_usd": 0.0012,
+      "total_cost_usd": 0.0241,
+      "latency_p50_s": 7.438,
+      "latency_p95_s": 27.589,
+      "errors": 0
+    },
+    "V2_tone_judge_only": {
+      "condition": "V2_tone_judge_only",
+      "n_tasks": 20,
+      "passed": 19,
+      "pass_at_1": 0.95,
+      "wilson_ci_95": [
+        0.764,
+        0.991
+      ],
+      "contamination_rate": 0.05,
+      "cost_per_task_usd": 0.00135,
+      "total_cost_usd": 0.027,
+      "latency_p50_s": 6.929,
+      "latency_p95_s": 34.55,
+      "errors": 0
+    },
+    "V3_combined": {
+      "condition": "V3_combined",
+      "n_tasks": 20,
+      "passed": 20,
+      "pass_at_1": 1.0,
+      "wilson_ci_95": [
+        0.839,
+        1
+      ],
+      "contamination_rate": 0.0,
+      "cost_per_task_usd": 0.00132,
+      "total_cost_usd": 0.0264,
+      "latency_p50_s": 8.236,
+      "latency_p95_s": 34.515,
+      "errors": 0
+    },
+    "AutoAgent_baseline": {
+      "condition": "AutoAgent_baseline",
+      "n_tasks": 20,
+      "passed": 20,
+      "pass_at_1": 1.0,
+      "wilson_ci_95": [
+        0.839,
+        1
+      ],
+      "contamination_rate": 0.0,
+      "cost_per_task_usd": 0.00023,
+      "total_cost_usd": 0.0046,
+      "latency_p50_s": 5.015,
+      "latency_p95_s": 24.795,
+      "errors": 0
+    }
+  },
+  "delta_A": {
+    "description": "Delta A = V3_combined vs V0_day1_baseline",
+    "delta_pass_at_1": 0.05,
+    "delta_contamination": -0.05,
+    "z_stat": -1.013,
+    "p_value": 0.1556,
+    "significant_p_lt_005": false
+  },
+  "delta_B": {
+    "description": "Delta B = V3_combined vs AutoAgent_baseline",
+    "delta_pass_at_1": 0.0,
+    "delta_contamination": 0.0,
+    "z_stat": 10.0,
+    "p_value": 0.9999,
+    "significant_p_lt_005": false
+  }
+}
